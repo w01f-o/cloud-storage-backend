@@ -4,6 +4,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 @Injectable()
 export class MailService {
   public constructor(private readonly mailerService: MailerService) {}
+
   public async sendActivationLink(email: string, link: string) {
     await this.mailerService.sendMail({
       to: email,
