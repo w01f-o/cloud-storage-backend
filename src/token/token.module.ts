@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TokenService } from './token.service';
 import { JwtService } from '@nestjs/jwt';
-import { ConfigModule } from '@nestjs/config';
+import { DatabaseService } from '../database/database.service';
 
 @Module({
-  imports: [ConfigModule.forRoot()],
-  providers: [TokenService, JwtService],
+  providers: [TokenService, JwtService, DatabaseService],
 })
 export class TokenModule {}

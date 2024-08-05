@@ -9,9 +9,13 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { MailModule } from './mail/mail.module';
 import { TokenModule } from './token/token.module';
+import { MailerModule } from '@nestjs-modules/mailer';
+import * as process from 'node:process';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
     DatabaseModule,
     UserModule,
     FolderModule,
@@ -23,6 +27,12 @@ import { TokenModule } from './token/token.module';
     }),
     MailModule,
     TokenModule,
+    MailerModule.forRoot({
+      transport: `smtps://${process.env.SMTP_USER}:${process.env.SMTP_PASSWORD}@${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`,
+      defaults: {
+        from: `"Cloud-storage" <${process.env.SMTP_USER}>`,
+      },
+    }),
   ],
 })
 export class AppModule {}

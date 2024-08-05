@@ -2,19 +2,22 @@ import { Injectable } from '@nestjs/common';
 import { RegistrationDto } from './dto/registrationDto';
 import { LoginDto } from './dto/loginDto';
 import { DatabaseService } from '../database/database.service';
-import bcrypt from 'bcrypt';
-import uuid from 'uuid';
+import * as bcrypt from 'bcrypt';
+import * as uuid from 'uuid';
 import { MailService } from '../mail/mail.service';
+import { TokenService } from '../token/token.service';
+import { UserDto } from './dto/userDto';
 
 @Injectable()
 export class AuthService {
   public constructor(
     private readonly databaseService: DatabaseService,
     private readonly mailService: MailService,
+    private readonly tokenService: TokenService,
   ) {}
 
   public async registration(registrationDto: RegistrationDto) {
-    const candidate = this.databaseService.user.findUnique({
+    const candidate = await this.databaseService.user.findUnique({
       where: { email: registrationDto.email },
     });
 
@@ -23,22 +26,29 @@ export class AuthService {
     }
 
     const { email, password, name } = registrationDto;
-    const hashPassword = await bcrypt.hash(password, 7);
+    const hashPassword = bcrypt.hashSync(password, 7);
     const activationLink = uuid.v4();
-    const user = this.databaseService.user.create({
+
+    const user = await this.databaseService.user.create({
       data: {
         password: hashPassword,
         email,
         name,
-        avatar: 'no-avatar.svg',
-        capacity: 1024 * 1024 * 1024 * 5,
-        freeSpace: 1024 * 1024 * 1024 * 5,
         activationLink,
       },
     });
-    await this.mailService.sendActivationLink(email, activationLink);
 
-    return 'registration';
+    const userDto = new UserDto(user.id, user.email, user.isActivated);
+
+    await this.mailService.sendActivationLink(
+      email,
+      `${process.env.API_URL}/auth/activate/${activationLink}`,
+    );
+
+    const tokens = await this.tokenService.generateTokens({ ...userDto });
+    await this.tokenService.saveToken(userDto.id, tokens.refreshToken);
+
+    return { user: userDto, ...tokens };
   }
 
   public login(loginDto: LoginDto) {
