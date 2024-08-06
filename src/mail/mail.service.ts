@@ -5,12 +5,12 @@ import { MailerService } from '@nestjs-modules/mailer';
 export class MailService {
   public constructor(private readonly mailerService: MailerService) {}
 
-  public async sendActivationLink(email: string, link: string) {
+  public async sendActivationCode(email: string, code: number) {
     await this.mailerService.sendMail({
       to: email,
       subject: 'Activate your account',
       template: 'activation',
-      html: `<a href="${link}">Activate your account: ${link}</a>`,
+      html: `<div>Activate your account: ${code}</div>`,
     });
   }
 }

@@ -3,10 +3,11 @@ import { RegistrationDto } from './dto/registrationDto';
 import { LoginDto } from './dto/loginDto';
 import { DatabaseService } from '../database/database.service';
 import * as bcrypt from 'bcrypt';
-import * as uuid from 'uuid';
 import { MailService } from '../mail/mail.service';
 import { TokenService } from '../token/token.service';
 import { UserDto } from './dto/userDto';
+import { ActivateDto } from './dto/activate.dto';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -16,34 +17,36 @@ export class AuthService {
     private readonly tokenService: TokenService,
   ) {}
 
+  private generateActivationCode(): number {
+    return Math.floor(Math.random() * (9999 - 1000 + 1)) + 1000;
+  }
+
   public async registration(registrationDto: RegistrationDto) {
+    const { email, password, name } = registrationDto;
+
     const candidate = await this.databaseService.user.findUnique({
-      where: { email: registrationDto.email },
+      where: { email },
     });
 
     if (candidate) {
       throw new Error('User with such email already exists');
     }
 
-    const { email, password, name } = registrationDto;
     const hashPassword = bcrypt.hashSync(password, 7);
-    const activationLink = uuid.v4();
+    const activationCode = this.generateActivationCode();
 
     const user = await this.databaseService.user.create({
       data: {
         password: hashPassword,
         email,
         name,
-        activationLink,
+        activationCode,
       },
     });
 
     const userDto = new UserDto(user.id, user.email, user.isActivated);
 
-    await this.mailService.sendActivationLink(
-      email,
-      `${process.env.API_URL}/auth/activate/${activationLink}`,
-    );
+    await this.mailService.sendActivationCode(email, activationCode);
 
     const tokens = await this.tokenService.generateTokens({ ...userDto });
     await this.tokenService.saveToken(userDto.id, tokens.refreshToken);
@@ -52,15 +55,31 @@ export class AuthService {
   }
 
   public login(loginDto: LoginDto) {
-    return 'login';
+    return loginDto;
   }
 
   public logout() {
     return 'logout';
   }
 
-  public activate(link: string) {
-    return link;
+  public async activate(activateDto: ActivateDto): Promise<void> {
+    const { code, email } = activateDto;
+    const user = await this.databaseService.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new Error('User with such email does not exist');
+    }
+
+    if (user.activationCode !== code) {
+      throw new Error('Wrong code');
+    }
+
+    await this.databaseService.user.update({
+      where: { email },
+      data: { isActivated: true },
+    });
   }
 
   public refresh() {

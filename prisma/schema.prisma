@@ -14,7 +14,7 @@ model User {
   password       String
   avatar         String       @default("no-avatar.svg")
   isActivated    Boolean      @default(false) @map("is_activated")
-  activationLink String       @map("activation_link")
+  activationCode Int          @map("activation_code")
   createdAt      DateTime     @default(now()) @map("created_at")
   folders        Folder[]
   capacity       BigInt       @default(5368709120)
