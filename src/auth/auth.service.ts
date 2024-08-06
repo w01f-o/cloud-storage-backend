@@ -53,7 +53,12 @@ export class AuthService {
 
     const userDto = new UserDto(user.id, user.email, user.isActivated);
 
-    await this.mailService.sendActivationCode(email, activationCode);
+    try {
+      await this.mailService.sendActivationCode(email, activationCode);
+    } catch (e) {
+      await this.databaseService.user.delete({ where: { id: user.id } });
+      throw e;
+    }
 
     const tokens = await this.tokenService.generateTokens({ ...userDto });
     await this.tokenService.saveToken(userDto.id, tokens.refreshToken);
