@@ -74,4 +74,10 @@ export class TokenService {
       secret: process.env.JWT_REFRESH_SECRET,
     });
   }
+
+  public async getTokenByUser(userId: string) {
+    return await this.databaseService.token.findFirst({
+      where: { userId },
+    });
+  }
 }
