@@ -38,12 +38,12 @@ export class TokenService {
     });
 
     if (tokenData) {
-      this.databaseService.token.update({
+      await this.databaseService.token.update({
         where: { id: tokenData.id },
         data: { refreshToken },
       });
     } else {
-      this.databaseService.token.create({
+      await this.databaseService.token.create({
         data: { userId, refreshToken },
       });
     }
