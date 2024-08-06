@@ -111,7 +111,26 @@ export class AuthService {
     });
   }
 
-  public refresh() {
-    return 'refresh';
+  public async refresh(refreshToken: string) {
+    if (!refreshToken) {
+      throw new Error('No refresh token');
+    }
+
+    const userData = await this.tokenService.validateRefreshToken(refreshToken);
+    const tokenFromDb = await this.tokenService.findToken(refreshToken);
+
+    if (!userData || !tokenFromDb) {
+      throw new Error('Wrong refresh token');
+    }
+
+    const user = await this.databaseService.user.findUnique({
+      where: { id: userData.id },
+    });
+    const userDto = new UserDto(user.id, user.email, user.isActivated);
+
+    const tokens = await this.tokenService.generateTokens({ ...userDto });
+    await this.tokenService.saveToken(userDto.id, tokens.refreshToken);
+
+    return { user: userDto, ...tokens };
   }
 }

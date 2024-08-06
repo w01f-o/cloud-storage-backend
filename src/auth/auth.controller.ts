@@ -59,7 +59,17 @@ export class AuthController {
   }
 
   @Get('refresh')
-  public refresh() {
-    return this.authService.refresh();
+  public async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { refreshToken } = req.cookies;
+    const userData = await this.authService.refresh(refreshToken);
+    res.cookie('refreshToken', userData.refreshToken, {
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+      httpOnly: true,
+    });
+
+    return userData;
   }
 }

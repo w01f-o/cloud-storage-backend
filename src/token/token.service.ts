@@ -56,4 +56,22 @@ export class TokenService {
       where: { refreshToken },
     });
   }
+
+  public async findToken(refreshToken: string) {
+    return await this.databaseService.token.findFirst({
+      where: { refreshToken },
+    });
+  }
+
+  public async validateAccesToken(token) {
+    return await this.jwtService.verifyAsync(token, {
+      secret: process.env.JWT_ACCESS_SECRET,
+    });
+  }
+
+  public async validateRefreshToken(token) {
+    return await this.jwtService.verifyAsync(token, {
+      secret: process.env.JWT_REFRESH_SECRET,
+    });
+  }
 }
