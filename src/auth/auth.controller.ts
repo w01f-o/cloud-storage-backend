@@ -24,8 +24,17 @@ export class AuthController {
   }
 
   @Post('login')
-  public login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  public async login(
+    @Res({ passthrough: true }) res: Response,
+    @Body() loginDto: LoginDto,
+  ) {
+    const userData = await this.authService.login(loginDto);
+    res.cookie('refreshToken', userData.refreshToken, {
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+      httpOnly: true,
+    });
+
+    return userData;
   }
 
   @Post('logout')

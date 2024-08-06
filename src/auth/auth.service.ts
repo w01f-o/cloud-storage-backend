@@ -7,7 +7,6 @@ import { MailService } from '../mail/mail.service';
 import { TokenService } from '../token/token.service';
 import { UserDto } from './dto/user.dto';
 import { ActivateDto } from './dto/activate.dto';
-import { User } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -21,6 +20,14 @@ export class AuthService {
     return Math.floor(Math.random() * (9999 - 1000 + 1)) + 1000;
   }
 
+  private generateHashPassword(password: string, salt: number): string {
+    return bcrypt.hashSync(password, salt);
+  }
+
+  private compareHashPassword(password: string, hash: string): boolean {
+    return bcrypt.compareSync(password, hash);
+  }
+
   public async registration(registrationDto: RegistrationDto) {
     const { email, password, name } = registrationDto;
 
@@ -32,7 +39,7 @@ export class AuthService {
       throw new Error('User with such email already exists');
     }
 
-    const hashPassword = bcrypt.hashSync(password, 7);
+    const hashPassword = this.generateHashPassword(password, 7);
     const activationCode = this.generateActivationCode();
 
     const user = await this.databaseService.user.create({
@@ -54,8 +61,29 @@ export class AuthService {
     return { user: userDto, ...tokens };
   }
 
-  public login(loginDto: LoginDto) {
-    return loginDto;
+  public async login(loginDto: LoginDto) {
+    const { email, password } = loginDto;
+
+    const user = await this.databaseService.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new Error('User with such email does not exist');
+    }
+
+    const isPassEquals = this.compareHashPassword(password, user.password);
+
+    if (!isPassEquals) {
+      throw new Error('Wrong password');
+    }
+
+    const userDto = new UserDto(user.id, user.email, user.isActivated);
+
+    const tokens = await this.tokenService.generateTokens({ ...userDto });
+    await this.tokenService.saveToken(userDto.id, tokens.refreshToken);
+
+    return { user: userDto, ...tokens };
   }
 
   public logout() {
