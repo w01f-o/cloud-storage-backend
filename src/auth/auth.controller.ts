@@ -1,22 +1,21 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  Req,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegistrationDto } from './dto/registration.dto';
 import { LoginDto } from './dto/login.dto';
 import { Response, Request } from 'express';
 import { ActivateDto } from './dto/activate.dto';
-import { AuthGuard } from './auth.guard';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  private setRefreshToken(res: Response, token: string) {
+    console.log(+process.env.JWT_COOKIE_MAX_AGE);
+    res.cookie('refreshToken', token, {
+      maxAge: +process.env.JWT_COOKIE_MAX_AGE,
+      httpOnly: true,
+    });
+  }
 
   @Post('registration')
   public async registration(
@@ -24,10 +23,7 @@ export class AuthController {
     @Body() registrationDto: RegistrationDto,
   ) {
     const userData = await this.authService.registration(registrationDto);
-    res.cookie('refreshToken', userData.refreshToken, {
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-      httpOnly: true,
-    });
+    this.setRefreshToken(res, userData.refreshToken);
 
     return userData;
   }
@@ -38,10 +34,7 @@ export class AuthController {
     @Body() loginDto: LoginDto,
   ) {
     const userData = await this.authService.login(loginDto);
-    res.cookie('refreshToken', userData.refreshToken, {
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-      httpOnly: true,
-    });
+    this.setRefreshToken(res, userData.refreshToken);
 
     return userData;
   }
@@ -74,10 +67,7 @@ export class AuthController {
   ) {
     const { refreshToken } = req.cookies;
     const userData = await this.authService.refresh(refreshToken);
-    res.cookie('refreshToken', userData.refreshToken, {
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-      httpOnly: true,
-    });
+    this.setRefreshToken(res, userData.refreshToken);
 
     return userData;
   }

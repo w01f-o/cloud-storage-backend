@@ -7,6 +7,7 @@ import { MailService } from '../mail/mail.service';
 import { TokenService } from '../token/token.service';
 import { UserDto } from './dto/user.dto';
 import { ActivateDto } from './dto/activate.dto';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -26,6 +27,20 @@ export class AuthService {
 
   private compareHashPassword(password: string, hash: string): boolean {
     return bcrypt.compareSync(password, hash);
+  }
+
+  private async generateAndSaveToken(user: User): Promise<{
+    user: typeof userDto;
+    refreshToken: string;
+    accessToken: string;
+  }> {
+    const { id, email, isActivated } = user;
+    const userDto = new UserDto(id, email, isActivated);
+
+    const tokens = await this.tokenService.generateTokens({ ...userDto });
+    await this.tokenService.saveToken(userDto.id, tokens.refreshToken);
+
+    return { user: userDto, ...tokens };
   }
 
   public async registration(registrationDto: RegistrationDto) {
@@ -51,19 +66,17 @@ export class AuthService {
       },
     });
 
-    const userDto = new UserDto(user.id, user.email, user.isActivated);
+    const response = await this.generateAndSaveToken(user);
 
     try {
       await this.mailService.sendActivationCode(email, activationCode);
     } catch (e) {
       await this.databaseService.user.delete({ where: { id: user.id } });
+      await this.tokenService.removeToken(response.refreshToken);
       throw e;
     }
 
-    const tokens = await this.tokenService.generateTokens({ ...userDto });
-    await this.tokenService.saveToken(userDto.id, tokens.refreshToken);
-
-    return { user: userDto, ...tokens };
+    return response;
   }
 
   public async login(loginDto: LoginDto) {
@@ -83,12 +96,7 @@ export class AuthService {
       throw new Error('Wrong password');
     }
 
-    const userDto = new UserDto(user.id, user.email, user.isActivated);
-
-    const tokens = await this.tokenService.generateTokens({ ...userDto });
-    await this.tokenService.saveToken(userDto.id, tokens.refreshToken);
-
-    return { user: userDto, ...tokens };
+    return await this.generateAndSaveToken(user);
   }
 
   public async logout(refreshToken: string) {
@@ -131,11 +139,7 @@ export class AuthService {
     const user = await this.databaseService.user.findUnique({
       where: { id: userData.id },
     });
-    const userDto = new UserDto(user.id, user.email, user.isActivated);
 
-    const tokens = await this.tokenService.generateTokens({ ...userDto });
-    await this.tokenService.saveToken(userDto.id, tokens.refreshToken);
-
-    return { user: userDto, ...tokens };
+    return await this.generateAndSaveToken(user);
   }
 }
