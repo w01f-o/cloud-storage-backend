@@ -50,4 +50,10 @@ export class TokenService {
 
     return tokenData;
   }
+
+  public async removeToken(refreshToken: string) {
+    await this.databaseService.token.deleteMany({
+      where: { refreshToken },
+    });
+  }
 }

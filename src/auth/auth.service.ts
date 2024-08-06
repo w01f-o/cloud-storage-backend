@@ -86,8 +86,9 @@ export class AuthService {
     return { user: userDto, ...tokens };
   }
 
-  public logout() {
-    return 'logout';
+  public async logout(refreshToken: string) {
+    const token = await this.tokenService.removeToken(refreshToken);
+    return token;
   }
 
   public async activate(activateDto: ActivateDto): Promise<void> {
