@@ -1,4 +1,10 @@
+import { IsEmail, IsNotEmpty } from 'class-validator';
+
 export class ActivateDto {
-    email: string;
-    code: number;
+  @IsNotEmpty()
+  @IsEmail()
+  email: string;
+
+  @IsNotEmpty()
+  code: number;
 }

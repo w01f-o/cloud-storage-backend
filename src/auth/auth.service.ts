@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { RegistrationDto } from './dto/registrationDto';
-import { LoginDto } from './dto/loginDto';
+import { RegistrationDto } from './dto/registration.dto';
+import { LoginDto } from './dto/login.dto';
 import { DatabaseService } from '../database/database.service';
 import * as bcrypt from 'bcrypt';
 import { MailService } from '../mail/mail.service';
 import { TokenService } from '../token/token.service';
-import { UserDto } from './dto/userDto';
+import { UserDto } from './dto/user.dto';
 import { ActivateDto } from './dto/activate.dto';
 import { User } from '@prisma/client';
 
