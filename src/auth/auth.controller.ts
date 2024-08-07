@@ -10,7 +10,6 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   private setRefreshToken(res: Response, token: string) {
-    console.log(+process.env.JWT_COOKIE_MAX_AGE);
     res.cookie('refreshToken', token, {
       maxAge: +process.env.JWT_COOKIE_MAX_AGE,
       httpOnly: true,

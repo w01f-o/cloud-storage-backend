@@ -1,4 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { RegistrationDto } from './dto/registration.dto';
 import { LoginDto } from './dto/login.dto';
 import { DatabaseService } from '../database/database.service';
@@ -51,7 +57,7 @@ export class AuthService {
     });
 
     if (candidate) {
-      throw new Error('User with such email already exists');
+      throw new ConflictException('User with such email already exists');
     }
 
     const hashPassword = this.generateHashPassword(password, 7);
@@ -73,7 +79,7 @@ export class AuthService {
     } catch (e) {
       await this.databaseService.user.delete({ where: { id: user.id } });
       await this.tokenService.removeToken(response.refreshToken);
-      throw e;
+      throw new InternalServerErrorException(e.message);
     }
 
     return response;
@@ -87,13 +93,13 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new Error('User with such email does not exist');
+      throw new UnauthorizedException('User with such email does not exist');
     }
 
     const isPassEquals = this.compareHashPassword(password, user.password);
 
     if (!isPassEquals) {
-      throw new Error('Wrong password');
+      throw new UnauthorizedException('Wrong password');
     }
 
     return await this.generateAndSaveToken(user);
@@ -111,11 +117,11 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new Error('User with such email does not exist');
+      throw new UnauthorizedException('User with such email does not exist');
     }
 
     if (user.activationCode !== code) {
-      throw new Error('Wrong code');
+      throw new UnauthorizedException('Wrong code');
     }
 
     await this.databaseService.user.update({
@@ -126,14 +132,14 @@ export class AuthService {
 
   public async refresh(refreshToken: string) {
     if (!refreshToken) {
-      throw new Error('No refresh token');
+      throw new BadRequestException('No refresh token');
     }
 
     const userData = await this.tokenService.validateRefreshToken(refreshToken);
     const tokenFromDb = await this.tokenService.findToken(refreshToken);
 
     if (!userData || !tokenFromDb) {
-      throw new Error('Wrong refresh token');
+      throw new UnauthorizedException('Wrong refresh token');
     }
 
     const user = await this.databaseService.user.findUnique({
