@@ -37,14 +37,15 @@ model Folder {
 }
 
 model File {
-  id       String   @id @default(uuid())
-  name     String
-  folder   Folder   @relation(fields: [folderId], references: [id])
-  folderId String   @map("folder_id")
-  user     User     @relation(fields: [userId], references: [id])
-  userId   String   @map("user_id")
-  addedAt  DateTime @default(now()) @map("created_at")
-  size     Int
+  id        String   @id @default(uuid())
+  name      String
+  localName String
+  folder    Folder   @relation(fields: [folderId], references: [id])
+  folderId  String   @map("folder_id")
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @map("user_id")
+  addedAt   DateTime @default(now()) @map("created_at")
+  size      Int
 }
 
 model SharedFile {
