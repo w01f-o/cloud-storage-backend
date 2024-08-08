@@ -8,17 +8,29 @@ import * as fs from 'node:fs';
 export class FileService {
   public constructor(private readonly databaseService: DatabaseService) {}
 
-  private generateFileName(name: string): string {
+  private generateFileName(name: string, userId: string): string {
     const nameArray = name.split('.');
     const fileName = nameArray[0];
     const fileExtension = nameArray[1];
 
-    return `${fileName}-${Date.now()}.${fileExtension}`;
+    return `${fileName}-${Date.now()}-${userId}-.${fileExtension}`;
   }
 
-  private saveFileOnServer(file: Express.Multer.File): string {
-    const fileName = this.generateFileName(file.originalname);
+  private async saveFileOnServer(
+    file: Express.Multer.File,
+    userId: string,
+  ): Promise<string> {
+    const fileName = this.generateFileName(file.originalname, userId);
     const filePath = path.resolve('static', fileName);
+    const { freeSpace } = await this.databaseService.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (freeSpace < file.size) {
+      throw new ForbiddenException('Not enough space');
+    }
 
     fs.writeFile(filePath, file.buffer, (err) => {
       if (err) {
@@ -52,10 +64,14 @@ export class FileService {
     });
   }
 
-  public upload(user, uploadFileDto: UploadFileDto, file: Express.Multer.File) {
+  public async upload(
+    user,
+    uploadFileDto: UploadFileDto,
+    file: Express.Multer.File,
+  ) {
     const { name, folderId } = uploadFileDto;
     const { id: userId } = user;
-    const localFileName = this.saveFileOnServer(file);
+    const localFileName = await this.saveFileOnServer(file, userId);
     this.updateUserSpace(userId, file.size);
 
     return this.databaseService.file.create({
