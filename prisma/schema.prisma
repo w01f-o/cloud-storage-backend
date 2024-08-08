@@ -17,6 +17,7 @@ model User {
   activationCode Int          @map("activation_code")
   createdAt      DateTime     @default(now()) @map("created_at")
   folders        Folder[]
+  files          File[]
   capacity       BigInt       @default(5368709120)
   usedSpace      BigInt       @default(0) @map("used_space")
   freeSpace      BigInt       @default(5368709120) @map("free_space")
@@ -40,6 +41,8 @@ model File {
   name     String
   folder   Folder   @relation(fields: [folderId], references: [id])
   folderId String   @map("folder_id")
+  user     User     @relation(fields: [userId], references: [id])
+  userId   String   @map("user_id")
   addedAt  DateTime @default(now()) @map("created_at")
   size     Int
 }

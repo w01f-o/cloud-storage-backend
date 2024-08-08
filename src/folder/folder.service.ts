@@ -11,53 +11,32 @@ export class FolderService {
     private readonly tokenService: TokenService,
   ) {}
 
-  private async checkPermission(
-    user: User,
-    folders: Folder | Folder[],
-    refreshToken: string,
-  ): Promise<void> {
-    const { id: userId } = user;
-    const { refreshToken: token } =
-      await this.tokenService.getTokenByUser(userId);
-
-    if (!token || token !== refreshToken) {
-      throw new Error('Permission denied');
-    }
-
-    if (
-      Array.isArray(folders) &&
-      folders.some((folder) => folder.userId === user.id)
-    ) {
-      throw new Error('Permission denied');
-    }
-
-    if (!Array.isArray(folders) && folders.userId !== user.id) {
-      throw new Error('Permission denied');
-    }
-  }
-
-  public async getAll(userId: string): Promise<Folder[]> {
+  public async getAll(user: User): Promise<Folder[]> {
+    const { id } = user;
     const folders = await this.databaseService.folder.findMany({
       where: {
-        userId,
+        userId: id,
       },
     });
 
     return folders;
   }
 
-  public async getOne(userId: string, folderId: string): Promise<Folder> {
+  public async getOne(user: User, folderId: string): Promise<Folder> {
+    const { id } = user;
     const folder = await this.databaseService.folder.findUnique({
       where: {
         id: folderId,
+        userId: id,
       },
     });
 
     return folder;
   }
 
-  public async create(createFolderDto: CreateFolderDto): Promise<Folder> {
-    const { color, name, userId } = createFolderDto;
+  public async create(user, createFolderDto: CreateFolderDto): Promise<Folder> {
+    const { color, name } = createFolderDto;
+    const { id } = user;
 
     return await this.databaseService.folder.create({
       data: {
@@ -65,28 +44,35 @@ export class FolderService {
         name,
         user: {
           connect: {
-            id: userId,
+            id,
           },
         },
       },
     });
   }
 
-  public remove(id: string): Promise<Folder> {
+  public async remove(user, id: string): Promise<Folder> {
+    const { id: userId } = user;
+
     return this.databaseService.folder.delete({
       where: {
         id,
+        userId,
       },
     });
   }
 
-  public async changeColor(id: string, color: string): Promise<Folder> {
+  public async changeColor(user, id: string, color: string): Promise<Folder> {
+    const { id: userId } = user;
+
     return await this.databaseService.folder.update({
       where: {
         id,
+        userId,
       },
       data: {
         color,
+        editedAt: new Date(),
       },
     });
   }

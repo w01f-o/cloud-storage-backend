@@ -63,13 +63,13 @@ export class TokenService {
     });
   }
 
-  public async validateAccesToken(token) {
+  public async validateAccesToken(token: string) {
     return await this.jwtService.verifyAsync(token, {
       secret: process.env.JWT_ACCESS_SECRET,
     });
   }
 
-  public async validateRefreshToken(token) {
+  public async validateRefreshToken(token: string) {
     return await this.jwtService.verifyAsync(token, {
       secret: process.env.JWT_REFRESH_SECRET,
     });

@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Req,
   UseGuards,
@@ -11,42 +12,57 @@ import {
 import { FolderService } from './folder.service';
 import { CreateFolderDto } from './dto/create.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
-import { Request } from 'express';
+import { CustomRequest } from 'src/types/request.type';
 
 @Controller('folder')
+@UseGuards(AuthGuard)
 export class FolderController {
   constructor(private readonly folderService: FolderService) {}
 
-  @UseGuards(AuthGuard)
   @Get()
-  getAll(@Req() req: Request) {
-    const { userId, folderId } = req.query;
-    const { refreshToken } = req.cookies;
+  public async getAll(@Req() req: CustomRequest) {
+    const { user } = req;
+    const folders = await this.folderService.getAll(user);
 
-    if (userId && !folderId) {
-      return this.folderService.getAll(userId as string);
-    }
-
-    if (userId && folderId) {
-      return this.folderService.getOne(userId as string, folderId as string);
-    }
+    return folders;
   }
 
-  @UseGuards(AuthGuard)
+  @Get(':id')
+  public async getOne(@Req() req: CustomRequest, @Param('id') id: string) {
+    const { user } = req;
+    const folder = await this.folderService.getOne(user, id);
+
+    return folder;
+  }
+
   @Post()
-  create(@Body('name') createFolderDto: CreateFolderDto) {
-    return this.folderService.create(createFolderDto);
+  public async create(
+    @Req() req: CustomRequest,
+    @Body() createFolderDto: CreateFolderDto,
+  ) {
+    const { user } = req;
+    const folder = await this.folderService.create(user, createFolderDto);
+
+    return folder;
   }
 
-  @UseGuards(AuthGuard)
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.folderService.remove(id);
+  public async remove(@Req() req: CustomRequest, @Param('id') id: string) {
+    const { user } = req;
+    const folder = await this.folderService.remove(user, id);
+
+    return folder;
   }
 
-  @UseGuards(AuthGuard)
-  @Post('color/:id')
-  changeColor(@Param('id') id: string, @Body('color') color: string) {
-    return this.folderService.changeColor(id, color);
+  @Patch('color/:id')
+  public async changeColor(
+    @Req() req: CustomRequest,
+    @Param('id') id: string,
+    @Body('color') color: string,
+  ) {
+    const { user } = req;
+    const folder = await this.folderService.changeColor(user, id, color);
+
+    return folder;
   }
 }

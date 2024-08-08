@@ -24,10 +24,15 @@ export class AuthGuard implements CanActivate {
         throw new UnauthorizedException();
       }
 
+      // if (!userData.isActivated) {
+      //   throw new UnauthorizedException();
+      // }
+
       request.user = userData;
     } catch {
       throw new UnauthorizedException();
     }
+
     return true;
   }
 

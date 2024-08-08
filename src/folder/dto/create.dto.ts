@@ -7,7 +7,4 @@ export class CreateFolderDto {
   @IsNotEmpty()
   @IsHexColor()
   color: string;
-
-  @IsNotEmpty()
-  userId: string;
 }
