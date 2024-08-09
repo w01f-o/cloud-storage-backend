@@ -45,4 +45,14 @@ export class SharedFileService {
 
     return sharedFile;
   }
+
+  public async deleteSharedFile(id: string): Promise<SharedFile> {
+    const sharedFile = await this.databaseService.sharedFile.delete({
+      where: {
+        id,
+      },
+    });
+
+    return sharedFile;
+  }
 }

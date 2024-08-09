@@ -1,5 +1,6 @@
 import {
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -33,5 +34,11 @@ export class SharedFileController {
   public async shareFile(@Req() req: CustomRequest, @Param() id: string) {
     const { user } = req;
     return this.sharedFileService.shareFile(user, id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Delete(':id')
+  public async deleteSharedFile(@Param() id: string) {
+    return this.sharedFileService.deleteSharedFile(id);
   }
 }
