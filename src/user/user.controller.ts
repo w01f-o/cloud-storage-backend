@@ -38,9 +38,9 @@ export class UserController {
   }
 
   @Patch('/name')
-  public async changeName(@Req() req: CustomRequest) {
+  public async changeName(@Req() req: CustomRequest, @Body() name: string) {
     const { user } = req;
-    const editedUser = await this.userService.changeName(user);
+    const editedUser = await this.userService.changeName(user, name);
 
     return editedUser;
   }

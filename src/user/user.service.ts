@@ -23,14 +23,14 @@ export class UserService {
     return foundedUser;
   }
 
-  public async changeName(user): Promise<User> {
+  public async changeName(user, name: string): Promise<User> {
     const { id } = user;
     const editedUser = await this.databaseService.user.update({
       where: {
         id,
       },
       data: {
-        name: user.name,
+        name,
         editedAt: new Date(),
       },
     });
