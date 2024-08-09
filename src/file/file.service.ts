@@ -13,7 +13,7 @@ export class FileService {
     const fileName = nameArray[0];
     const fileExtension = nameArray[1];
 
-    return `${fileName}-${Date.now()}-${userId}-.${fileExtension}`;
+    return `${fileName}-${Date.now()}-${userId}.${fileExtension}`;
   }
 
   private async saveFileOnServer(
