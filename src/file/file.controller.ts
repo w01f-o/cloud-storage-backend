@@ -25,11 +25,14 @@ export class FileController {
   constructor(private readonly fileService: FileService) {}
 
   @Get(':id')
-  public async download(@Res() res: Response, @Param('id') id: string) {
+  public async download(
+    @Res({ passthrough: true }) res: Response,
+    @Param('id') id: string,
+  ) {
     const filePath = await this.fileService.download(id);
     const fileStream = fs.createReadStream(filePath);
 
-    fileStream.pipe(res);
+    return fileStream.pipe(res);
   }
 
   @Post('upload')

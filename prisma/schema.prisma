@@ -50,12 +50,13 @@ model File {
 }
 
 model SharedFile {
-  id       String   @id @default(uuid())
-  name     String
-  link     String
-  sharedAt DateTime @default(now()) @map("shared_at")
-  userId   String   @map("user_id")
-  user     User     @relation(fields: [userId], references: [id])
+  id        String   @id @default(uuid())
+  name      String
+  localName String
+  link      String
+  sharedAt  DateTime @default(now()) @map("shared_at")
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model Token {
