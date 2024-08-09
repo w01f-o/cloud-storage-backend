@@ -3,7 +3,7 @@ import { DatabaseService } from 'src/database/database.service';
 import { UploadFileDto } from './dto/upload.dto';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
-import { File, User } from '@prisma/client';
+import { File, Folder, User } from '@prisma/client';
 import { TokenService } from 'src/token/token.service';
 
 @Injectable()
@@ -69,6 +69,22 @@ export class FileService {
     });
   }
 
+  private async updateFolderSize(
+    folderId: string,
+    size: number,
+  ): Promise<Folder> {
+    return await this.databaseService.folder.update({
+      where: {
+        id: folderId,
+      },
+      data: {
+        size: {
+          increment: size,
+        },
+      },
+    });
+  }
+
   public async download(id: string) {
     const file = await this.databaseService.file.findUnique({
       where: {
@@ -86,8 +102,11 @@ export class FileService {
   ): Promise<File> {
     const { name, folderId } = uploadFileDto;
     const { id: userId } = user;
+    const { size } = file;
     const localFileName = await this.saveFileOnServer(file, userId);
-    this.updateUserSpace(userId, file.size);
+
+    this.updateUserSpace(userId, size);
+    this.updateFolderSize(folderId, size);
 
     return this.databaseService.file.create({
       data: {
