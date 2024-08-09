@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { DatabaseModule } from './database/database.module';
 import { UserModule } from './user/user.module';
 import { FolderModule } from './folder/folder.module';
@@ -12,6 +12,7 @@ import { TokenModule } from './token/token.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import * as process from 'node:process';
 import { ConfigModule } from '@nestjs/config';
+import { FileAccessMiddleware } from './file/file.middleware';
 
 @Module({
   imports: [
@@ -23,7 +24,7 @@ import { ConfigModule } from '@nestjs/config';
     SharedFileModule,
     AuthModule,
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'static'),
+      rootPath: join(__dirname, '..', 'static', 'user_avatars'),
     }),
     MailModule,
     TokenModule,
@@ -35,4 +36,8 @@ import { ConfigModule } from '@nestjs/config';
     }),
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(FileAccessMiddleware).forRoutes('*');
+  }
+}

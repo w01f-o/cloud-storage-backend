@@ -6,19 +6,27 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { TokenService } from 'src/token/token.service';
+import { CustomRequest } from 'src/types/request.type';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(private readonly tokenService: TokenService) {}
 
   public async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
-    const token = this.extractTokenFromHeader(request);
+    const request: CustomRequest = context.switchToHttp().getRequest();
+    const token =
+      request.path.split('/')[2] !== 'file'
+        ? this.extractTokenFromHeader(request)
+        : request.query.token;
+
     if (!token) {
       throw new UnauthorizedException();
     }
+
     try {
-      const userData = await this.tokenService.validateAccesToken(token);
+      const userData = await this.tokenService.validateAccesToken(
+        token as string,
+      );
 
       if (!userData) {
         throw new UnauthorizedException();

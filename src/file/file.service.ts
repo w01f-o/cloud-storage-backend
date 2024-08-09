@@ -3,10 +3,15 @@ import { DatabaseService } from 'src/database/database.service';
 import { UploadFileDto } from './dto/upload.dto';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
+import { File, User } from '@prisma/client';
+import { TokenService } from 'src/token/token.service';
 
 @Injectable()
 export class FileService {
-  public constructor(private readonly databaseService: DatabaseService) {}
+  public constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly tokenService: TokenService,
+  ) {}
 
   private generateFileName(name: string, userId: string): string {
     const nameArray = name.split('.');
@@ -50,8 +55,8 @@ export class FileService {
     });
   }
 
-  private updateUserSpace(userId: string, size: number) {
-    return this.databaseService.user.update({
+  private async updateUserSpace(userId: string, size: number): Promise<User> {
+    return await this.databaseService.user.update({
       where: { id: userId },
       data: {
         usedSpace: {
@@ -64,11 +69,21 @@ export class FileService {
     });
   }
 
+  public async download(id: string) {
+    const file = await this.databaseService.file.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    return path.resolve('static', file.localName);
+  }
+
   public async upload(
     user,
     uploadFileDto: UploadFileDto,
     file: Express.Multer.File,
-  ) {
+  ): Promise<File> {
     const { name, folderId } = uploadFileDto;
     const { id: userId } = user;
     const localFileName = await this.saveFileOnServer(file, userId);
@@ -93,7 +108,7 @@ export class FileService {
     });
   }
 
-  public async delete(user, id: string) {
+  public async delete(user, id: string): Promise<File> {
     const { id: userId } = user;
     const file = await this.databaseService.file.delete({
       where: {
@@ -107,10 +122,10 @@ export class FileService {
     return file;
   }
 
-  public rename(user, name: string, id: string) {
+  public async rename(user, name: string, id: string): Promise<File> {
     const { id: userId } = user;
 
-    return this.databaseService.file.update({
+    return await this.databaseService.file.update({
       where: {
         userId,
         id,
