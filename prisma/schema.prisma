@@ -16,6 +16,7 @@ model User {
   isActivated    Boolean      @default(false) @map("is_activated")
   activationCode Int          @map("activation_code")
   createdAt      DateTime     @default(now()) @map("created_at")
+  editedAt       DateTime     @default(now()) @map("edited_at")
   folders        Folder[]
   files          File[]
   capacity       BigInt       @default(5368709120)

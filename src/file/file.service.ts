@@ -21,12 +21,15 @@ export class FileService {
     return `${fileName}-${Date.now()}-${userId}.${fileExtension}`;
   }
 
-  private async saveFileOnServer(
+  public async saveFileOnServer(
     file: Express.Multer.File,
     userId: string,
+    { isPublic }: { isPublic: boolean },
   ): Promise<string> {
     const fileName = this.generateFileName(file.originalname, userId);
-    const filePath = path.resolve('static', fileName);
+    const filePath = isPublic
+      ? path.resolve('static', 'public', fileName)
+      : path.resolve('static', fileName);
     const { freeSpace } = await this.databaseService.user.findUnique({
       where: {
         id: userId,
@@ -46,7 +49,7 @@ export class FileService {
     return fileName;
   }
 
-  private deleteFileFromServer(fileName: string): void {
+  public deleteFileFromServer(fileName: string): void {
     const filePath = path.resolve('static', fileName);
     fs.unlink(filePath, (err) => {
       if (err) {
@@ -103,7 +106,9 @@ export class FileService {
     const { name, folderId } = uploadFileDto;
     const { id: userId } = user;
     const { size } = file;
-    const localFileName = await this.saveFileOnServer(file, userId);
+    const localFileName = await this.saveFileOnServer(file, userId, {
+      isPublic: false,
+    });
 
     this.updateUserSpace(userId, size);
     this.updateFolderSize(folderId, size);

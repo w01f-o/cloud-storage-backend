@@ -23,10 +23,6 @@ export class AuthService {
     private readonly tokenService: TokenService,
   ) {}
 
-  private generateActivationCode(): number {
-    return Math.floor(Math.random() * (9999 - 1000 + 1)) + 1000;
-  }
-
   private generateHashPassword(password: string, salt: number): string {
     return bcrypt.hashSync(password, salt);
   }
@@ -61,7 +57,7 @@ export class AuthService {
     }
 
     const hashPassword = this.generateHashPassword(password, 7);
-    const activationCode = this.generateActivationCode();
+    const activationCode = this.mailService.generateActivationCode();
 
     const user = await this.databaseService.user.create({
       data: {

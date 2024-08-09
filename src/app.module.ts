@@ -24,7 +24,7 @@ import { FileAccessMiddleware } from './file/file.middleware';
     SharedFileModule,
     AuthModule,
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'static', 'user_avatars'),
+      rootPath: join(__dirname, '..', 'static', 'public'),
     }),
     MailModule,
     TokenModule,
