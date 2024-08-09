@@ -22,6 +22,7 @@ export class FolderController {
   @Get()
   public async getAll(@Req() req: CustomRequest) {
     const { user } = req;
+
     const folders = await this.folderService.getAll(user);
 
     return folders;
