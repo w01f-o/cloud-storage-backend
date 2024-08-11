@@ -47,6 +47,7 @@ model File {
   userId    String   @map("user_id")
   addedAt   DateTime @default(now()) @map("created_at")
   size      Int
+  type      String
 }
 
 model SharedFile {

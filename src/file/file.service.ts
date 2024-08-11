@@ -128,6 +128,7 @@ export class FileService {
             id: folderId,
           },
         },
+        type: file.originalname.split('.').pop(),
       },
     });
   }
