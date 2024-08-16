@@ -48,7 +48,7 @@ export class AuthController {
     if (!refreshToken) {
       refreshToken = token;
     }
-    console.log(refreshToken);
+
     const deletedToken = await this.authService.logout(refreshToken);
     res.clearCookie('refreshToken');
 
