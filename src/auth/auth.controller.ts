@@ -42,12 +42,17 @@ export class AuthController {
   public async logout(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
+    @Body() { token }: { token: string },
   ) {
-    const { refreshToken } = req.cookies;
-    const token = await this.authService.logout(refreshToken);
+    let { refreshToken } = req.cookies;
+    if (!refreshToken) {
+      refreshToken = token;
+    }
+    console.log(refreshToken);
+    const deletedToken = await this.authService.logout(refreshToken);
     res.clearCookie('refreshToken');
 
-    return token;
+    return { token: deletedToken };
   }
 
   @Post('activate')

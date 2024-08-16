@@ -13,6 +13,7 @@ export class FolderService {
 
   public async getAll(user: User): Promise<Folder[]> {
     const { id } = user;
+
     const folders = await this.databaseService.folder.findMany({
       where: {
         userId: id,

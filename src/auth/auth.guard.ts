@@ -7,6 +7,7 @@ import {
 import { Request } from 'express';
 import { TokenService } from 'src/token/token.service';
 import { CustomRequest } from 'src/types/request.type';
+import { ErrorsEnum } from '../types/errors.type';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -20,26 +21,31 @@ export class AuthGuard implements CanActivate {
         : request.query.token;
 
     if (!token) {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException({
+        message: 'No access token',
+        type: ErrorsEnum.NO_ACCESS_TOKEN,
+      });
     }
 
-    try {
-      const userData = await this.tokenService.validateAccesToken(
-        token as string,
-      );
+    const userData = await this.tokenService.validateAccesToken(
+      token as string,
+    );
 
-      if (!userData) {
-        throw new UnauthorizedException();
-      }
-
-      // if (!userData.isActivated) {
-      //   throw new UnauthorizedException();
-      // }
-
-      request.user = userData;
-    } catch {
-      throw new UnauthorizedException();
+    if (!userData) {
+      throw new UnauthorizedException({
+        message: 'Wrong access token',
+        type: ErrorsEnum.WRONG_ACCESS_TOKEN,
+      });
     }
+
+    // if (!userData.isActivated) {
+    //   throw new UnauthorizedException({
+    //     message: 'User not activated',
+    //     type: ErrorsEnum.USER_NOT_ACTIVATED,
+    //   });
+    // }
+
+    request.user = userData;
 
     return true;
   }

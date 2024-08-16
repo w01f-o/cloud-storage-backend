@@ -14,6 +14,7 @@ import { TokenService } from '../token/token.service';
 import { UserDto } from './dto/user.dto';
 import { ActivateDto } from './dto/activate.dto';
 import { User } from '@prisma/client';
+import { ErrorsEnum } from '../types/errors.type';
 
 @Injectable()
 export class AuthService {
@@ -36,8 +37,8 @@ export class AuthService {
     refreshToken: string;
     accessToken: string;
   }> {
-    const { id, email, isActivated } = user;
-    const userDto = new UserDto(id, email, isActivated);
+    const { id, email, isActivated, name, avatar } = user;
+    const userDto = new UserDto(id, email, name, avatar, isActivated);
 
     const tokens = await this.tokenService.generateTokens({ ...userDto });
     await this.tokenService.saveToken(userDto.id, tokens.refreshToken);
@@ -53,7 +54,10 @@ export class AuthService {
     });
 
     if (candidate) {
-      throw new ConflictException('User with such email already exists');
+      throw new ConflictException({
+        message: 'User with such email already exists',
+        type: ErrorsEnum.USER_WITH_SUCH_EMAIL_ALREADY_EXISTS,
+      });
     }
 
     const hashPassword = this.generateHashPassword(password, 7);
@@ -75,7 +79,11 @@ export class AuthService {
     } catch (e) {
       await this.databaseService.user.delete({ where: { id: user.id } });
       await this.tokenService.removeToken(response.refreshToken);
-      throw new InternalServerErrorException(e.message);
+
+      throw new InternalServerErrorException({
+        message: e.message,
+        type: ErrorsEnum.MAILER_ERROR,
+      });
     }
 
     return response;
@@ -89,13 +97,19 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('User with such email does not exist');
+      throw new UnauthorizedException({
+        message: 'Wrong email or password',
+        type: ErrorsEnum.WRONG_EMAIL_OR_PASSWORD,
+      });
     }
 
     const isPassEquals = this.compareHashPassword(password, user.password);
 
     if (!isPassEquals) {
-      throw new UnauthorizedException('Wrong password');
+      throw new UnauthorizedException({
+        message: 'Wrong email or password',
+        type: ErrorsEnum.WRONG_EMAIL_OR_PASSWORD,
+      });
     }
 
     return await this.generateAndSaveToken(user);
@@ -113,11 +127,17 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('User with such email does not exist');
+      throw new UnauthorizedException({
+        message: 'User with such email not found',
+        type: ErrorsEnum.USER_WITH_SUCH_EMAIL_NOT_FOUND,
+      });
     }
 
     if (user.activationCode !== code) {
-      throw new UnauthorizedException('Wrong code');
+      throw new UnauthorizedException({
+        message: 'Wrong activation code',
+        type: ErrorsEnum.WRONG_ACTIVATION_CODE,
+      });
     }
 
     await this.databaseService.user.update({
@@ -128,14 +148,20 @@ export class AuthService {
 
   public async refresh(refreshToken: string) {
     if (!refreshToken) {
-      throw new BadRequestException('No refresh token');
+      throw new BadRequestException({
+        message: 'No refresh token',
+        type: ErrorsEnum.NO_REFRESH_TOKEN,
+      });
     }
 
     const userData = await this.tokenService.validateRefreshToken(refreshToken);
     const tokenFromDb = await this.tokenService.findToken(refreshToken);
 
     if (!userData || !tokenFromDb) {
-      throw new UnauthorizedException('Wrong refresh token');
+      throw new UnauthorizedException({
+        message: 'Wrong refresh token',
+        type: ErrorsEnum.WRONG_REFRESH_TOKEN,
+      });
     }
 
     const user = await this.databaseService.user.findUnique({
