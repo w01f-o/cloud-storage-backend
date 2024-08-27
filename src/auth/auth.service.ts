@@ -36,6 +36,8 @@ export class AuthService {
     user: typeof userDto;
     refreshToken: string;
     accessToken: string;
+    accessExpiresIn: number;
+    refreshExpiresIn: number;
   }> {
     const { id, email, isActivated, name, avatar } = user;
     const userDto = new UserDto(id, email, name, avatar, isActivated);
@@ -43,7 +45,12 @@ export class AuthService {
     const tokens = await this.tokenService.generateTokens({ ...userDto });
     await this.tokenService.saveToken(userDto.id, tokens.refreshToken);
 
-    return { user: userDto, ...tokens };
+    return {
+      user: userDto,
+      ...tokens,
+      accessExpiresIn: Date.now() + 1000 * 60 * 60,
+      refreshExpiresIn: Date.now() + 1000 * 60 * 60 * 24 * 30,
+    };
   }
 
   public async registration(registrationDto: RegistrationDto) {

@@ -8,6 +8,8 @@ import { Request } from 'express';
 import { TokenService } from 'src/token/token.service';
 import { CustomRequest } from 'src/types/request.type';
 import { ErrorsEnum } from '../types/errors.type';
+import { User } from '@prisma/client';
+import { TokenExpiredError } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -26,10 +28,18 @@ export class AuthGuard implements CanActivate {
         type: ErrorsEnum.NO_ACCESS_TOKEN,
       });
     }
+    let userData: User;
 
-    const userData = await this.tokenService.validateAccesToken(
-      token as string,
-    );
+    try {
+      userData = await this.tokenService.validateAccesToken(token as string);
+    } catch (e) {
+      if (e instanceof TokenExpiredError) {
+        throw new UnauthorizedException({
+          message: 'Expired access token',
+          type: ErrorsEnum.EXPIRED_ACCESS_TOKEN,
+        });
+      }
+    }
 
     if (!userData) {
       throw new UnauthorizedException({

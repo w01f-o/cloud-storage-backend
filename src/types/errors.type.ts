@@ -9,4 +9,6 @@ export enum ErrorsEnum {
   NO_ACCESS_TOKEN = 'no_access_token',
   WRONG_REFRESH_TOKEN = 'wrong_refresh_token',
   WRONG_ACCESS_TOKEN = 'wrong_access_token',
+  EXPIRED_REFRESH_TOKEN = 'expired_refresh_token',
+  EXPIRED_ACCESS_TOKEN = 'expired_access_token',
 }
