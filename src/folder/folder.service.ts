@@ -22,6 +22,9 @@ export class FolderService {
           contains: search,
         },
       },
+      orderBy: {
+        editedAt: 'desc',
+      },
     });
 
     return folders;
