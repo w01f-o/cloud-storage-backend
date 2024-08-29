@@ -13,6 +13,7 @@ import { FolderService } from './folder.service';
 import { CreateFolderDto } from './dto/create.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { CustomRequest } from 'src/types/request.type';
+import { UpdateFolderDto } from './dto/update.dto';
 
 @Controller('folder')
 @UseGuards(AuthGuard)
@@ -21,9 +22,10 @@ export class FolderController {
 
   @Get()
   public async getAll(@Req() req: CustomRequest) {
-    const { user } = req;
+    const { user, query } = req;
+    const search = query.search as string;
 
-    const folders = await this.folderService.getAll(user);
+    const folders = await this.folderService.getAll(user, search);
 
     return folders;
   }
@@ -31,6 +33,7 @@ export class FolderController {
   @Get(':id')
   public async getOne(@Req() req: CustomRequest, @Param('id') id: string) {
     const { user } = req;
+
     const folder = await this.folderService.getOne(user, id);
 
     return folder;
@@ -42,6 +45,7 @@ export class FolderController {
     @Body() createFolderDto: CreateFolderDto,
   ) {
     const { user } = req;
+
     const folder = await this.folderService.create(user, createFolderDto);
 
     return folder;
@@ -55,14 +59,18 @@ export class FolderController {
     return folder;
   }
 
-  @Patch('color/:id')
-  public async changeColor(
+  @Patch(':id')
+  public async update(
     @Req() req: CustomRequest,
     @Param('id') id: string,
-    @Body('color') color: string,
+    @Body() updateFolderDto: UpdateFolderDto,
   ) {
     const { user } = req;
-    const folder = await this.folderService.changeColor(user, id, color);
+    const folder = await this.folderService.changeColor(
+      user,
+      id,
+      updateFolderDto,
+    );
 
     return folder;
   }

@@ -3,6 +3,7 @@ import { Folder, User } from '@prisma/client';
 import { DatabaseService } from 'src/database/database.service';
 import { CreateFolderDto } from './dto/create.dto';
 import { TokenService } from 'src/token/token.service';
+import { UpdateFolderDto } from './dto/update.dto';
 
 @Injectable()
 export class FolderService {
@@ -11,12 +12,15 @@ export class FolderService {
     private readonly tokenService: TokenService,
   ) {}
 
-  public async getAll(user: User): Promise<Folder[]> {
+  public async getAll(user: User, search: string): Promise<Folder[]> {
     const { id } = user;
 
     const folders = await this.databaseService.folder.findMany({
       where: {
         userId: id,
+        name: {
+          contains: search,
+        },
       },
     });
 
@@ -63,8 +67,13 @@ export class FolderService {
     });
   }
 
-  public async changeColor(user, id: string, color: string): Promise<Folder> {
+  public async changeColor(
+    user,
+    id: string,
+    updateFolderDto: UpdateFolderDto,
+  ): Promise<Folder> {
     const { id: userId } = user;
+    const { color, name } = updateFolderDto;
 
     return await this.databaseService.folder.update({
       where: {
@@ -73,6 +82,7 @@ export class FolderService {
       },
       data: {
         color,
+        name,
         editedAt: new Date(),
       },
     });
