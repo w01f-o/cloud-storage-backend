@@ -21,6 +21,7 @@ import * as fs from 'node:fs';
 import { Response } from 'express';
 import * as path from 'node:path';
 import { UpdateFileDto } from './dto/update.dto';
+import * as contentDisposition from 'content-disposition';
 
 @UseGuards(AuthGuard)
 @Controller('file')
@@ -44,10 +45,13 @@ export class FileController {
     const filePath = path.resolve('static', file.localName);
 
     const fileStream = fs.createReadStream(filePath);
+    const filename = encodeURIComponent(
+      `${file.name}.${file.localName.split('.').pop()}`,
+    );
 
     res.set({
       'Content-Type': 'application/octet-stream',
-      'Content-Disposition': `attachment; filename="${file.name}.${file.localName.split('.').pop()}"`,
+      'Content-Disposition': `attachment; filename="${filename}"`,
       'Content-Length': file.size,
     });
 
