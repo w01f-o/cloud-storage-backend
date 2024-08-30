@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Req,
   Res,
@@ -18,24 +19,42 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from 'src/auth/auth.guard';
 import * as fs from 'node:fs';
 import { Response } from 'express';
+import * as path from 'node:path';
+import { UpdateFileDto } from './dto/update.dto';
 
 @UseGuards(AuthGuard)
 @Controller('file')
 export class FileController {
   constructor(private readonly fileService: FileService) {}
 
+  @Get()
+  public async getAll(@Req() req: CustomRequest) {
+    const {
+      user,
+      query: { folder },
+    } = req;
+    const files = await this.fileService.getAll(user, folder as string);
+
+    return files;
+  }
+
   @Get(':id')
-  public async download(
-    @Res({ passthrough: true }) res: Response,
-    @Param('id') id: string,
-  ) {
-    const filePath = await this.fileService.download(id);
+  public async download(@Res() res: Response, @Param('id') id: string) {
+    const file = await this.fileService.download(id);
+    const filePath = path.resolve('static', file.localName);
+
     const fileStream = fs.createReadStream(filePath);
+
+    res.set({
+      'Content-Type': 'application/octet-stream',
+      'Content-Disposition': `attachment; filename="${file.name}.${file.localName.split('.').pop()}"`,
+      'Content-Length': file.size,
+    });
 
     return fileStream.pipe(res);
   }
 
-  @Post('upload')
+  @Post('')
   @UseInterceptors(FileInterceptor('file'))
   public async upload(
     @Req() req: CustomRequest,
@@ -55,19 +74,20 @@ export class FileController {
   @Delete(':id')
   public async delete(@Req() req: CustomRequest, @Param('id') id: string) {
     const { user } = req;
+    console.log(id);
     const file = await this.fileService.delete(user, id);
 
     return file;
   }
 
-  @Post('rename/:id')
-  public async rename(
+  @Patch(':id')
+  public async update(
     @Req() req: CustomRequest,
-    @Body() name: string,
+    @Body() updateFileDto: UpdateFileDto,
     @Param('id') id: string,
   ) {
     const { user } = req;
-    const file = await this.fileService.rename(user, name, id);
+    const file = await this.fileService.update(user, updateFileDto, id);
 
     return file;
   }

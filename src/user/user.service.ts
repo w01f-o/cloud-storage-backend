@@ -12,15 +12,21 @@ export class UserService {
     private readonly fileService: FileService,
   ) {}
 
-  public async getUser(user): Promise<User> {
-    const { id } = user;
-    const foundedUser = await this.databaseService.user.findUnique({
-      where: {
-        id,
-      },
-    });
+  public async getUser(user) {
+    const { id: userId } = user;
+    const { avatar, name, email, id } =
+      await this.databaseService.user.findUnique({
+        where: {
+          id: userId,
+        },
+      });
 
-    return foundedUser;
+    return {
+      avatar,
+      name,
+      email,
+      id,
+    };
   }
 
   public async changeName(user, name: string): Promise<User> {

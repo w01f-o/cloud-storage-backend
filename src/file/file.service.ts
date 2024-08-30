@@ -5,6 +5,7 @@ import * as path from 'node:path';
 import * as fs from 'node:fs';
 import { File, Folder, User } from '@prisma/client';
 import { TokenService } from 'src/token/token.service';
+import { UpdateFileDto } from './dto/update.dto';
 
 @Injectable()
 export class FileService {
@@ -15,8 +16,8 @@ export class FileService {
 
   private generateFileName(name: string, userId: string): string {
     const nameArray = name.split('.');
-    const fileName = nameArray[0];
-    const fileExtension = nameArray[1];
+    const fileName = nameArray.shift();
+    const fileExtension = nameArray.pop();
 
     return `${fileName}-${Date.now()}-${userId}.${fileExtension}`;
   }
@@ -88,6 +89,16 @@ export class FileService {
     });
   }
 
+  public async getAll(user, folderId: string): Promise<File[]> {
+    const files = await this.databaseService.file.findMany({
+      where: {
+        folderId,
+      },
+    });
+
+    return files;
+  }
+
   public async download(id: string) {
     const file = await this.databaseService.file.findUnique({
       where: {
@@ -95,7 +106,7 @@ export class FileService {
       },
     });
 
-    return path.resolve('static', file.localName);
+    return file;
   }
 
   public async upload(
@@ -147,7 +158,11 @@ export class FileService {
     return file;
   }
 
-  public async rename(user, name: string, id: string): Promise<File> {
+  public async update(
+    user,
+    updateFileDto: UpdateFileDto,
+    id: string,
+  ): Promise<File> {
     const { id: userId } = user;
 
     return await this.databaseService.file.update({
@@ -156,7 +171,7 @@ export class FileService {
         id,
       },
       data: {
-        name,
+        name: updateFileDto.name,
       },
     });
   }

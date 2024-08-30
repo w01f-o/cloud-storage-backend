@@ -4,12 +4,14 @@ import { DatabaseService } from 'src/database/database.service';
 import { CreateFolderDto } from './dto/create.dto';
 import { TokenService } from 'src/token/token.service';
 import { UpdateFolderDto } from './dto/update.dto';
+import { FileService } from 'src/file/file.service';
 
 @Injectable()
 export class FolderService {
   public constructor(
     private readonly databaseService: DatabaseService,
     private readonly tokenService: TokenService,
+    private readonly fileService: FileService,
   ) {}
 
   public async getAll(user: User, search: string): Promise<Folder[]> {
@@ -62,10 +64,32 @@ export class FolderService {
   public async remove(user, id: string): Promise<Folder> {
     const { id: userId } = user;
 
-    return this.databaseService.folder.delete({
+    const folder = await this.databaseService.folder.findUnique({
       where: {
         id,
         userId,
+      },
+    });
+
+    const files = await this.databaseService.file.findMany({
+      where: {
+        folderId: folder.id,
+      },
+    });
+
+    files.forEach((file) => {
+      this.fileService.deleteFileFromServer(file.localName);
+    });
+
+    await this.databaseService.file.deleteMany({
+      where: {
+        folderId: folder.id,
+      },
+    });
+
+    return await this.databaseService.folder.delete({
+      where: {
+        id,
       },
     });
   }
