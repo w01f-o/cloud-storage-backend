@@ -149,9 +149,14 @@ export class UserService {
 
   public async changeAvatar(user, avatar: Express.Multer.File): Promise<User> {
     const { id } = user;
-    const filename = await this.fileService.saveFileOnServer(avatar, id, {
-      isPublic: true,
-    });
+    const filename = await this.fileService.saveFileOnServer(
+      avatar,
+      user.id,
+      id,
+      {
+        isPublic: true,
+      },
+    );
 
     const editedUser = await this.databaseService.user.update({
       where: {

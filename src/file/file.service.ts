@@ -26,10 +26,11 @@ export class FileService {
 
   public async saveFileOnServer(
     file: Express.Multer.File,
+    originalFileName: string,
     userId: string,
     { isPublic }: { isPublic: boolean },
   ): Promise<string> {
-    const fileName = this.generateFileName(file.originalname, userId);
+    const fileName = this.generateFileName(originalFileName, userId);
     const filePath = isPublic
       ? path.resolve('static', 'public', fileName)
       : path.resolve('static', fileName);
@@ -137,7 +138,8 @@ export class FileService {
     const { name, folderId } = uploadFileDto;
     const { id: userId } = user;
     const { size } = file;
-    const localFileName = await this.saveFileOnServer(file, userId, {
+
+    const localFileName = await this.saveFileOnServer(file, name, userId, {
       isPublic: false,
     });
 

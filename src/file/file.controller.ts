@@ -73,6 +73,7 @@ export class FileController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     const { user } = req;
+
     const uploadedFile = await this.fileService.upload(
       user,
       uploadFileDto,
