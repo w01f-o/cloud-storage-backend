@@ -20,6 +20,14 @@ import { UpdateFolderDto } from './dto/update.dto';
 export class FolderController {
   constructor(private readonly folderService: FolderService) {}
 
+  @Get('last_updated')
+  public async getLast(@Req() req: CustomRequest) {
+    const { user } = req;
+    const folders = await this.folderService.getLastUpdated(user);
+
+    return folders;
+  }
+
   @Get()
   public async getAll(@Req() req: CustomRequest) {
     const { user, query } = req;

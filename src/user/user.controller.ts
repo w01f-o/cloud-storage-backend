@@ -26,6 +26,14 @@ export class UserController {
     return foundedUser;
   }
 
+  @Get('/storage')
+  public async getStorage(@Req() req: CustomRequest) {
+    const { user } = req;
+    const storage = await this.userService.getStorage(user);
+
+    return storage;
+  }
+
   @Patch('/email')
   public async changeEmail(
     @Req() req: CustomRequest,

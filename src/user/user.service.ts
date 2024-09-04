@@ -44,6 +44,48 @@ export class UserService {
     return editedUser;
   }
 
+  public async getStorage(user) {
+    const { id: userId } = user;
+    const storageFromDb = await this.databaseService.user.findUnique({
+      where: {
+        id: userId,
+      },
+      select: {
+        usedSpace: true,
+        freeSpace: true,
+        capacity: true,
+        files: {
+          select: {
+            type: true,
+            size: true,
+          },
+        },
+      },
+    });
+
+    const storage = Array.from(
+      new Set(storageFromDb.files.map((file) => file.type)),
+    ).map((type) => ({
+      type,
+      size: storageFromDb.files.reduce((acc, file) => {
+        if (file.type === type) {
+          return acc + file.size;
+        }
+
+        return acc;
+      }, 0),
+    }));
+
+    return {
+      category: storage,
+      space: {
+        used: storageFromDb.usedSpace,
+        free: storageFromDb.freeSpace,
+        total: storageFromDb.capacity,
+      },
+    };
+  }
+
   public async changeEmail(user, email: string): Promise<User> {
     const { id } = user;
     const activationCode = this.mailService.generateActivationCode();

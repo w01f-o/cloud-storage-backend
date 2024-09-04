@@ -21,7 +21,6 @@ import * as fs from 'node:fs';
 import { Response } from 'express';
 import * as path from 'node:path';
 import { UpdateFileDto } from './dto/update.dto';
-import * as contentDisposition from 'content-disposition';
 
 @UseGuards(AuthGuard)
 @Controller('file')
@@ -35,6 +34,14 @@ export class FileController {
       query: { folder },
     } = req;
     const files = await this.fileService.getAll(user, folder as string);
+
+    return files;
+  }
+
+  @Get('last_uploaded')
+  public async getLast(@Req() req: CustomRequest) {
+    const { user } = req;
+    const files = await this.fileService.getLastUploaded(user);
 
     return files;
   }
@@ -78,7 +85,7 @@ export class FileController {
   @Delete(':id')
   public async delete(@Req() req: CustomRequest, @Param('id') id: string) {
     const { user } = req;
-    console.log(id);
+
     const file = await this.fileService.delete(user, id);
 
     return file;

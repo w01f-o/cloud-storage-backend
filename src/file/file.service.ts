@@ -6,6 +6,8 @@ import * as fs from 'node:fs';
 import { File, Folder, User } from '@prisma/client';
 import { TokenService } from 'src/token/token.service';
 import { UpdateFileDto } from './dto/update.dto';
+import * as mime from 'mime-types';
+import { fileTypes } from 'src/types/fileTypes.type';
 
 @Injectable()
 export class FileService {
@@ -89,11 +91,29 @@ export class FileService {
     });
   }
 
+  public getFileType(type: string): string {
+    return fileTypes[mime.lookup(type)] ?? 'other';
+  }
+
   public async getAll(user, folderId: string): Promise<File[]> {
     const files = await this.databaseService.file.findMany({
       where: {
         folderId,
       },
+    });
+
+    return files;
+  }
+
+  public async getLastUploaded(user): Promise<File[]> {
+    const files = await this.databaseService.file.findMany({
+      where: {
+        userId: user.id,
+      },
+      orderBy: {
+        addedAt: 'desc',
+      },
+      take: 5,
     });
 
     return files;
@@ -124,7 +144,7 @@ export class FileService {
     this.updateUserSpace(userId, size);
     this.updateFolderSize(folderId, size);
 
-    return this.databaseService.file.create({
+    const createdFile = await this.databaseService.file.create({
       data: {
         name,
         localName: localFileName,
@@ -139,9 +159,20 @@ export class FileService {
             id: folderId,
           },
         },
-        type: file.originalname.split('.').pop(),
+        type: this.getFileType(file.originalname.split('.').pop()),
       },
     });
+
+    await this.databaseService.folder.update({
+      where: {
+        id: folderId,
+      },
+      data: {
+        editedAt: new Date(),
+      },
+    });
+
+    return createdFile;
   }
 
   public async delete(user, id: string): Promise<File> {
@@ -150,6 +181,20 @@ export class FileService {
       where: {
         userId,
         id,
+      },
+    });
+
+    await this.databaseService.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        freeSpace: {
+          increment: file.size,
+        },
+        usedSpace: {
+          decrement: file.size,
+        },
       },
     });
 

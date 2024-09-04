@@ -44,6 +44,21 @@ export class FolderService {
     return folder;
   }
 
+  public async getLastUpdated(user): Promise<Folder[]> {
+    const { id } = user;
+    const folders = await this.databaseService.folder.findMany({
+      where: {
+        userId: id,
+      },
+      orderBy: {
+        editedAt: 'desc',
+      },
+      take: 5,
+    });
+
+    return folders;
+  }
+
   public async create(user, createFolderDto: CreateFolderDto): Promise<Folder> {
     const { color, name } = createFolderDto;
     const { id } = user;
@@ -69,22 +84,13 @@ export class FolderService {
         id,
         userId,
       },
-    });
-
-    const files = await this.databaseService.file.findMany({
-      where: {
-        folderId: folder.id,
+      include: {
+        files: true,
       },
     });
 
-    files.forEach((file) => {
-      this.fileService.deleteFileFromServer(file.localName);
-    });
-
-    await this.databaseService.file.deleteMany({
-      where: {
-        folderId: folder.id,
-      },
+    folder.files.forEach((file) => {
+      this.fileService.delete(user, file.id);
     });
 
     return await this.databaseService.folder.delete({
