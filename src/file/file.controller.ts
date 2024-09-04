@@ -53,7 +53,7 @@ export class FileController {
 
     const fileStream = fs.createReadStream(filePath);
     const filename = encodeURIComponent(
-      `${file.name}.${file.localName.split('.').pop()}`,
+      `${file.localName.split('-').shift()}.${file.localName.split('.').pop()}`,
     );
 
     res.set({
