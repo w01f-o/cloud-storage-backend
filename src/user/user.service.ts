@@ -14,7 +14,7 @@ export class UserService {
 
   public async getUser(user) {
     const { id: userId } = user;
-    const { avatar, name, email, id } =
+    const { avatar, name, email, id, isActivated } =
       await this.databaseService.user.findUnique({
         where: {
           id: userId,
@@ -26,6 +26,7 @@ export class UserService {
       name,
       email,
       id,
+      isActivated,
     };
   }
 
