@@ -63,7 +63,7 @@ export class FileService {
   }
 
   private async updateUserSpace(userId: string, size: number): Promise<User> {
-    return await this.databaseService.user.update({
+    return this.databaseService.user.update({
       where: { id: userId },
       data: {
         usedSpace: {
@@ -80,7 +80,7 @@ export class FileService {
     folderId: string,
     size: number,
   ): Promise<Folder> {
-    return await this.databaseService.folder.update({
+    return this.databaseService.folder.update({
       where: {
         id: folderId,
       },
@@ -97,37 +97,39 @@ export class FileService {
   }
 
   public async getAll(user, folderId: string): Promise<File[]> {
-    const files = await this.databaseService.file.findMany({
+    const { id: userId } = user;
+
+    return this.databaseService.file.findMany({
       where: {
         folderId,
+        userId,
       },
     });
-
-    return files;
   }
 
   public async getLastUploaded(user): Promise<File[]> {
-    const files = await this.databaseService.file.findMany({
+    const { id: userId } = user;
+
+    return this.databaseService.file.findMany({
       where: {
-        userId: user.id,
+        userId: userId,
       },
       orderBy: {
         addedAt: 'desc',
       },
       take: 5,
     });
-
-    return files;
   }
 
-  public async download(id: string) {
-    const file = await this.databaseService.file.findUnique({
+  public async download(user, id: string) {
+    const { id: userId } = user;
+
+    return this.databaseService.file.findUnique({
       where: {
         id,
+        userId,
       },
     });
-
-    return file;
   }
 
   public async upload(
@@ -143,8 +145,8 @@ export class FileService {
       isPublic: false,
     });
 
-    this.updateUserSpace(userId, size);
-    this.updateFolderSize(folderId, size);
+    await this.updateUserSpace(userId, size);
+    await this.updateFolderSize(folderId, size);
 
     const createdFile = await this.databaseService.file.create({
       data: {
@@ -212,7 +214,7 @@ export class FileService {
   ): Promise<File> {
     const { id: userId } = user;
 
-    return await this.databaseService.file.update({
+    return this.databaseService.file.update({
       where: {
         userId,
         id,

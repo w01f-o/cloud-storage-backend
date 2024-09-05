@@ -6,6 +6,7 @@ import { TokenService } from 'src/token/token.service';
 import { JwtService } from '@nestjs/jwt';
 import { MailService } from 'src/mail/mail.service';
 import { FileService } from 'src/file/file.service';
+import { AuthService } from 'src/auth/auth.service';
 
 @Module({
   controllers: [UserController],
@@ -16,6 +17,7 @@ import { FileService } from 'src/file/file.service';
     JwtService,
     MailService,
     FileService,
+    AuthService,
   ],
 })
 export class UserModule {}

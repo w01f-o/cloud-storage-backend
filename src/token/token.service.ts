@@ -58,7 +58,7 @@ export class TokenService {
   }
 
   public async findToken(refreshToken: string) {
-    return await this.databaseService.token.findFirst({
+    return this.databaseService.token.findFirst({
       where: { refreshToken },
     });
   }
@@ -76,7 +76,7 @@ export class TokenService {
   }
 
   public async getTokenByUser(userId: string) {
-    return await this.databaseService.token.findFirst({
+    return this.databaseService.token.findFirst({
       where: { userId },
     });
   }

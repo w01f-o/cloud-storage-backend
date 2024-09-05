@@ -1,8 +1,16 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { User } from '@prisma/client';
 import { DatabaseService } from 'src/database/database.service';
 import { FileService } from 'src/file/file.service';
 import { MailService } from 'src/mail/mail.service';
+import { ErrorsEnum } from 'src/types/errors.type';
+import { ChangePasswordDto } from './dto/changePassword.dto';
+import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
 export class UserService {
@@ -10,6 +18,7 @@ export class UserService {
     private readonly databaseService: DatabaseService,
     private readonly mailService: MailService,
     private readonly fileService: FileService,
+    private readonly authService: AuthService,
   ) {}
 
   public async getUser(user) {
@@ -30,7 +39,7 @@ export class UserService {
     };
   }
 
-  public async sendtActivationCode(user) {
+  public async sendActivationCode(user) {
     const { id: userId } = user;
 
     const { activationCode, email } =
@@ -53,7 +62,8 @@ export class UserService {
 
   public async changeName(user, name: string): Promise<User> {
     const { id } = user;
-    const editedUser = await this.databaseService.user.update({
+
+    return this.databaseService.user.update({
       where: {
         id,
       },
@@ -62,8 +72,6 @@ export class UserService {
         editedAt: new Date(),
       },
     });
-
-    return editedUser;
   }
 
   public async getStorage(user) {
@@ -154,19 +162,39 @@ export class UserService {
     return editedUser;
   }
 
-  public async changePassword(user, password: string): Promise<User> {
+  public async changePassword(
+    user,
+    changePasswordDto: ChangePasswordDto,
+  ): Promise<User> {
     const { id } = user;
-    const editedUser = await this.databaseService.user.update({
+    const { newPassword, oldPassword } = changePasswordDto;
+    const oldUser = await this.databaseService.user.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!this.authService.compareHashPassword(oldPassword, oldUser.password)) {
+      throw new UnauthorizedException({
+        message: 'Wrong old password',
+        type: ErrorsEnum.WRONG_OLD_PASSWORD,
+      });
+    }
+
+    const hashedPassword = this.authService.generateHashPassword(
+      newPassword,
+      7,
+    );
+
+    return this.databaseService.user.update({
       where: {
         id,
       },
       data: {
-        password,
+        password: hashedPassword,
         editedAt: new Date(),
       },
     });
-
-    return editedUser;
   }
 
   public async changeAvatar(user, avatar: Express.Multer.File): Promise<User> {
@@ -180,7 +208,7 @@ export class UserService {
       },
     );
 
-    const editedUser = await this.databaseService.user.update({
+    return this.databaseService.user.update({
       where: {
         id,
       },
@@ -189,7 +217,5 @@ export class UserService {
         editedAt: new Date(),
       },
     });
-
-    return editedUser;
   }
 }

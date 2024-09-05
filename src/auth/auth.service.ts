@@ -24,11 +24,11 @@ export class AuthService {
     private readonly tokenService: TokenService,
   ) {}
 
-  private generateHashPassword(password: string, salt: number): string {
+  public generateHashPassword(password: string, salt: number): string {
     return bcrypt.hashSync(password, salt);
   }
 
-  private compareHashPassword(password: string, hash: string): boolean {
+  public compareHashPassword(password: string, hash: string): boolean {
     return bcrypt.compareSync(password, hash);
   }
 
@@ -123,8 +123,7 @@ export class AuthService {
   }
 
   public async logout(refreshToken: string) {
-    const token = await this.tokenService.removeToken(refreshToken);
-    return token;
+    return await this.tokenService.removeToken(refreshToken);
   }
 
   public async activate(activateDto: ActivateDto): Promise<void> {

@@ -33,22 +33,25 @@ export class FileController {
       user,
       query: { folder },
     } = req;
-    const files = await this.fileService.getAll(user, folder as string);
 
-    return files;
+    return await this.fileService.getAll(user, folder as string);
   }
 
   @Get('last_uploaded')
   public async getLast(@Req() req: CustomRequest) {
     const { user } = req;
-    const files = await this.fileService.getLastUploaded(user);
 
-    return files;
+    return await this.fileService.getLastUploaded(user);
   }
 
   @Get(':id')
-  public async download(@Res() res: Response, @Param('id') id: string) {
-    const file = await this.fileService.download(id);
+  public async download(
+    @Req() req: CustomRequest,
+    @Res() res: Response,
+    @Param('id') id: string,
+  ) {
+    const { user } = req;
+    const file = await this.fileService.download(user, id);
     const filePath = path.resolve('static', file.localName);
 
     const fileStream = fs.createReadStream(filePath);
@@ -74,22 +77,14 @@ export class FileController {
   ) {
     const { user } = req;
 
-    const uploadedFile = await this.fileService.upload(
-      user,
-      uploadFileDto,
-      file,
-    );
-
-    return uploadedFile;
+    return await this.fileService.upload(user, uploadFileDto, file);
   }
 
   @Delete(':id')
   public async delete(@Req() req: CustomRequest, @Param('id') id: string) {
     const { user } = req;
 
-    const file = await this.fileService.delete(user, id);
-
-    return file;
+    return await this.fileService.delete(user, id);
   }
 
   @Patch(':id')
@@ -99,8 +94,7 @@ export class FileController {
     @Param('id') id: string,
   ) {
     const { user } = req;
-    const file = await this.fileService.update(user, updateFileDto, id);
 
-    return file;
+    return await this.fileService.update(user, updateFileDto, id);
   }
 }

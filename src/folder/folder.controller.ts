@@ -23,9 +23,8 @@ export class FolderController {
   @Get('last_updated')
   public async getLast(@Req() req: CustomRequest) {
     const { user } = req;
-    const folders = await this.folderService.getLastUpdated(user);
 
-    return folders;
+    return await this.folderService.getLastUpdated(user);
   }
 
   @Get()
@@ -33,18 +32,14 @@ export class FolderController {
     const { user, query } = req;
     const search = query.search as string;
 
-    const folders = await this.folderService.getAll(user, search);
-
-    return folders;
+    return await this.folderService.getAll(user, search);
   }
 
   @Get(':id')
   public async getOne(@Req() req: CustomRequest, @Param('id') id: string) {
     const { user } = req;
 
-    const folder = await this.folderService.getOne(user, id);
-
-    return folder;
+    return await this.folderService.getOne(user, id);
   }
 
   @Post()
@@ -54,17 +49,14 @@ export class FolderController {
   ) {
     const { user } = req;
 
-    const folder = await this.folderService.create(user, createFolderDto);
-
-    return folder;
+    return await this.folderService.create(user, createFolderDto);
   }
 
   @Delete(':id')
   public async remove(@Req() req: CustomRequest, @Param('id') id: string) {
     const { user } = req;
-    const folder = await this.folderService.remove(user, id);
 
-    return folder;
+    return await this.folderService.remove(user, id);
   }
 
   @Patch(':id')
@@ -74,12 +66,7 @@ export class FolderController {
     @Body() updateFolderDto: UpdateFolderDto,
   ) {
     const { user } = req;
-    const folder = await this.folderService.changeColor(
-      user,
-      id,
-      updateFolderDto,
-    );
 
-    return folder;
+    return await this.folderService.changeColor(user, id, updateFolderDto);
   }
 }

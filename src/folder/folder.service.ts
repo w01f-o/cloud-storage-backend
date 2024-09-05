@@ -17,7 +17,7 @@ export class FolderService {
   public async getAll(user: User, search: string): Promise<Folder[]> {
     const { id } = user;
 
-    const folders = await this.databaseService.folder.findMany({
+    return this.databaseService.folder.findMany({
       where: {
         userId: id,
         name: {
@@ -28,42 +28,38 @@ export class FolderService {
         editedAt: 'desc',
       },
     });
-
-    return folders;
   }
 
   public async getOne(user: User, folderId: string): Promise<Folder> {
     const { id } = user;
-    const folder = await this.databaseService.folder.findUnique({
+
+    return this.databaseService.folder.findUnique({
       where: {
         id: folderId,
         userId: id,
       },
     });
-
-    return folder;
   }
 
   public async getLastUpdated(user): Promise<Folder[]> {
-    const { id } = user;
-    const folders = await this.databaseService.folder.findMany({
+    const { id: userId } = user;
+
+    return this.databaseService.folder.findMany({
       where: {
-        userId: id,
+        userId,
       },
       orderBy: {
         editedAt: 'desc',
       },
       take: 5,
     });
-
-    return folders;
   }
 
   public async create(user, createFolderDto: CreateFolderDto): Promise<Folder> {
     const { color, name } = createFolderDto;
     const { id } = user;
 
-    return await this.databaseService.folder.create({
+    return this.databaseService.folder.create({
       data: {
         color,
         name,
@@ -93,7 +89,7 @@ export class FolderService {
       this.fileService.delete(user, file.id);
     });
 
-    return await this.databaseService.folder.delete({
+    return this.databaseService.folder.delete({
       where: {
         id,
       },
@@ -108,7 +104,7 @@ export class FolderService {
     const { id: userId } = user;
     const { color, name } = updateFolderDto;
 
-    return await this.databaseService.folder.update({
+    return this.databaseService.folder.update({
       where: {
         id,
         userId,

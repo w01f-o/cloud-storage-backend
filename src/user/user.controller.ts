@@ -12,6 +12,7 @@ import { UserService } from './user.service';
 import { CustomRequest } from 'src/types/request.type';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ChangePasswordDto } from './dto/changePassword.dto';
 
 @UseGuards(AuthGuard)
 @Controller('user')
@@ -21,15 +22,14 @@ export class UserController {
   @Get()
   public async getUser(@Req() req: CustomRequest) {
     const { user } = req;
-    const foundedUser = await this.userService.getUser(user);
 
-    return foundedUser;
+    return await this.userService.getUser(user);
   }
 
   @Get('/code')
   public async sendtActivationCode(@Req() req: CustomRequest) {
     const { user } = req;
-    await this.userService.sendtActivationCode(user);
+    await this.userService.sendActivationCode(user);
 
     return {
       success: true,
@@ -39,9 +39,8 @@ export class UserController {
   @Get('/storage')
   public async getStorage(@Req() req: CustomRequest) {
     const { user } = req;
-    const storage = await this.userService.getStorage(user);
 
-    return storage;
+    return await this.userService.getStorage(user);
   }
 
   @Patch('/email')
@@ -50,17 +49,15 @@ export class UserController {
     @Body('email') email: string,
   ) {
     const { user } = req;
-    const editedUser = await this.userService.changeEmail(user, email);
 
-    return editedUser;
+    return await this.userService.changeEmail(user, email);
   }
 
   @Patch('/name')
   public async changeName(@Req() req: CustomRequest, @Body() name: string) {
     const { user } = req;
-    const editedUser = await this.userService.changeName(user, name);
 
-    return editedUser;
+    return await this.userService.changeName(user, name);
   }
 
   @UseInterceptors(FileInterceptor('avatar'))
@@ -70,19 +67,17 @@ export class UserController {
     @UploadedFile() avatar: Express.Multer.File,
   ) {
     const { user } = req;
-    const editedUser = await this.userService.changeAvatar(user, avatar);
-
-    return editedUser;
+    console.log(user);
+    return await this.userService.changeAvatar(user, avatar);
   }
 
   @Patch('/password')
   public async changePassword(
     @Req() req: CustomRequest,
-    @Body('password') password: string,
+    @Body() changePasswordDto: ChangePasswordDto,
   ) {
     const { user } = req;
-    const editedUser = await this.userService.changePassword(user, password);
 
-    return editedUser;
+    return await this.userService.changePassword(user, changePasswordDto);
   }
 }
