@@ -14,7 +14,9 @@ export class MailService {
       to: email,
       subject: 'Activate your account',
       template: 'activation',
-      html: `<div>Activate your account: ${activationCode}</div>`,
+      context: {
+        code: activationCode,
+      },
     });
   }
 }

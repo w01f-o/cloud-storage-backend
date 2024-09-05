@@ -3,7 +3,7 @@ import { DatabaseModule } from './database/database.module';
 import { UserModule } from './user/user.module';
 import { FolderModule } from './folder/folder.module';
 import { FileModule } from './file/file.module';
-import { SharedFileModule } from './shared-file/shared-file.module';
+import { Shared_fileModule } from './shared_file/shared_file.module';
 import { AuthModule } from './auth/auth.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
@@ -13,6 +13,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import * as process from 'node:process';
 import { ConfigModule } from '@nestjs/config';
 import { FileAccessMiddleware } from './file/file.middleware';
+import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { FileAccessMiddleware } from './file/file.middleware';
     UserModule,
     FolderModule,
     FileModule,
-    SharedFileModule,
+    Shared_fileModule,
     AuthModule,
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'static', 'public'),
@@ -31,7 +32,14 @@ import { FileAccessMiddleware } from './file/file.middleware';
     MailerModule.forRoot({
       transport: `smtps://${process.env.SMTP_USER}:${process.env.SMTP_PASSWORD}@${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`,
       defaults: {
-        from: `"Cloud-storage" <${process.env.SMTP_USER}>`,
+        from: `"Cloud storage" <${process.env.SMTP_USER}>`,
+      },
+      template: {
+        dir: join(__dirname, '..', 'templates'),
+        adapter: new HandlebarsAdapter(),
+        options: {
+          strict: true,
+        },
       },
     }),
   ],

@@ -26,6 +26,16 @@ export class UserController {
     return foundedUser;
   }
 
+  @Get('/code')
+  public async sendtActivationCode(@Req() req: CustomRequest) {
+    const { user } = req;
+    await this.userService.sendtActivationCode(user);
+
+    return {
+      success: true,
+    };
+  }
+
   @Get('/storage')
   public async getStorage(@Req() req: CustomRequest) {
     const { user } = req;

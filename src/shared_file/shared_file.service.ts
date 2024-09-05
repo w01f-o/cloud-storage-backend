@@ -5,17 +5,17 @@ import { DatabaseService } from 'src/database/database.service';
 import * as uuid from 'uuid';
 
 @Injectable()
-export class SharedFileService {
+export class Shared_fileService {
   public constructor(private readonly databaseService: DatabaseService) {}
 
   private generateLink(): string {
     return uuid.v4();
   }
 
-  public async getFile(id: string): Promise<string> {
-    const sharedFile = await this.databaseService.sharedFile.findUnique({
+  public async getFile(link: string): Promise<string> {
+    const sharedFile = await this.databaseService.sharedFile.findFirst({
       where: {
-        id,
+        link,
       },
     });
 
@@ -30,7 +30,7 @@ export class SharedFileService {
       },
     });
 
-    const sharedFile = await this.databaseService.sharedFile.create({
+    return this.databaseService.sharedFile.create({
       data: {
         user: {
           connect: {
@@ -42,17 +42,13 @@ export class SharedFileService {
         link: this.generateLink(),
       },
     });
-
-    return sharedFile;
   }
 
   public async deleteSharedFile(id: string): Promise<SharedFile> {
-    const sharedFile = await this.databaseService.sharedFile.delete({
+    return this.databaseService.sharedFile.delete({
       where: {
         id,
       },
     });
-
-    return sharedFile;
   }
 }

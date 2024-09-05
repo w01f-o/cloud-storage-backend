@@ -30,6 +30,27 @@ export class UserService {
     };
   }
 
+  public async sendtActivationCode(user) {
+    const { id: userId } = user;
+
+    const { activationCode, email } =
+      await this.databaseService.user.findUnique({
+        where: {
+          id: userId,
+        },
+        select: {
+          activationCode: true,
+          email: true,
+        },
+      });
+
+    try {
+      await this.mailService.sendActivationCode(email, activationCode);
+    } catch (e) {
+      throw new InternalServerErrorException(e.message);
+    }
+  }
+
   public async changeName(user, name: string): Promise<User> {
     const { id } = user;
     const editedUser = await this.databaseService.user.update({
