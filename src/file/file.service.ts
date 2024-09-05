@@ -53,8 +53,14 @@ export class FileService {
     return fileName;
   }
 
-  public deleteFileFromServer(fileName: string): void {
-    const filePath = path.resolve('static', fileName);
+  public deleteFileFromServer(
+    fileName: string,
+    { isPublic }: { isPublic: boolean },
+  ): void {
+    const filePath = isPublic
+      ? path.resolve('static', 'public', fileName)
+      : path.resolve('static', fileName);
+
     fs.unlink(filePath, (err) => {
       if (err) {
         throw new ForbiddenException(err);
@@ -202,7 +208,7 @@ export class FileService {
       },
     });
 
-    this.deleteFileFromServer(file.localName);
+    this.deleteFileFromServer(file.localName, { isPublic: false });
 
     return file;
   }

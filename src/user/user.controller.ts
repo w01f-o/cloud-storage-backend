@@ -68,7 +68,7 @@ export class UserController {
     @UploadedFile() avatar: Express.Multer.File,
   ) {
     const { user } = req;
-    console.log(user);
+
     return await this.userService.changeAvatar(user, avatar);
   }
 

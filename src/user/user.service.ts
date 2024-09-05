@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Injectable,
   InternalServerErrorException,
   UnauthorizedException,
@@ -203,14 +202,31 @@ export class UserService {
 
   public async changeAvatar(user, avatar: Express.Multer.File): Promise<User> {
     const { id } = user;
+    const { avatar: oldAvatar } = await this.databaseService.user.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        avatar: true,
+      },
+    });
+
     const filename = await this.fileService.saveFileOnServer(
       avatar,
-      user.id,
+      `${user.id}.${avatar.originalname.split('.').pop()}`,
       id,
       {
         isPublic: true,
       },
     );
+
+    if (oldAvatar !== 'no-avatar.svg') {
+      try {
+        this.fileService.deleteFileFromServer(oldAvatar, { isPublic: true });
+      } catch (e) {
+        console.error(e);
+      }
+    }
 
     return this.databaseService.user.update({
       where: {
