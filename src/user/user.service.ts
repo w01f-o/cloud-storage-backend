@@ -11,6 +11,8 @@ import { MailService } from 'src/mail/mail.service';
 import { ErrorsEnum } from 'src/types/errors.type';
 import { ChangePasswordDto } from './dto/changePassword.dto';
 import { AuthService } from 'src/auth/auth.service';
+import { TokenService } from 'src/token/token.service';
+import { FolderService } from 'src/folder/folder.service';
 
 @Injectable()
 export class UserService {
@@ -19,6 +21,8 @@ export class UserService {
     private readonly mailService: MailService,
     private readonly fileService: FileService,
     private readonly authService: AuthService,
+    private readonly tokenService: TokenService,
+    private readonly folderService: FolderService,
   ) {}
 
   public async getUser(user) {
@@ -215,6 +219,35 @@ export class UserService {
       data: {
         avatar: filename,
         editedAt: new Date(),
+      },
+    });
+  }
+
+  public async delete(user) {
+    const { id, refreshToken } = user;
+    const userFromDb = await this.databaseService.user.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        folders: {
+          select: {
+            id: true,
+          },
+        },
+        id: true,
+      },
+    });
+
+    await this.tokenService.removeToken(refreshToken);
+
+    userFromDb.folders.forEach(async (folder) => {
+      await this.folderService.remove(user, folder.id);
+    });
+
+    return this.databaseService.user.delete({
+      where: {
+        id: userFromDb.id,
       },
     });
   }

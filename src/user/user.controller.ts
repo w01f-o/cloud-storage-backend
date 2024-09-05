@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Patch,
   Req,
@@ -79,5 +80,12 @@ export class UserController {
     const { user } = req;
 
     return await this.userService.changePassword(user, changePasswordDto);
+  }
+
+  @Delete()
+  public async delete(@Req() req: CustomRequest) {
+    const { user } = req;
+
+    return await this.userService.delete(user);
   }
 }
