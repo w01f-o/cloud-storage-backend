@@ -12,6 +12,8 @@ import { ChangePasswordDto } from './dto/changePassword.dto';
 import { AuthService } from 'src/auth/auth.service';
 import { TokenService } from 'src/token/token.service';
 import { FolderService } from 'src/folder/folder.service';
+import { UpdateNameDto } from './dto/updateName.dto';
+import { UpdateEmailDto } from './dto/updateEmail.dto';
 
 @Injectable()
 export class UserService {
@@ -63,8 +65,9 @@ export class UserService {
     }
   }
 
-  public async changeName(user, name: string): Promise<User> {
+  public async changeName(user, updateNameDto: UpdateNameDto): Promise<User> {
     const { id } = user;
+    const { name } = updateNameDto;
 
     return this.databaseService.user.update({
       where: {
@@ -119,16 +122,20 @@ export class UserService {
     };
   }
 
-  public async changeEmail(user, email: string): Promise<User> {
+  public async changeEmail(
+    user,
+    updateEmailDto: UpdateEmailDto,
+  ): Promise<User> {
     const { id } = user;
+    const { email } = updateEmailDto;
     const activationCode = this.mailService.generateActivationCode();
-    const oldUser = await this.databaseService.user.findUnique({
+    const userFromDb = await this.databaseService.user.findUnique({
       where: {
         id,
       },
     });
 
-    if (oldUser.email === email) {
+    if (userFromDb.email === email) {
       throw new InternalServerErrorException('Email already exists');
     }
 
@@ -152,10 +159,10 @@ export class UserService {
           id,
         },
         data: {
-          email: oldUser.email,
-          editedAt: oldUser.editedAt,
+          email: userFromDb.email,
+          editedAt: userFromDb.editedAt,
           isActivated: true,
-          activationCode: oldUser.activationCode,
+          activationCode: userFromDb.activationCode,
         },
       });
 

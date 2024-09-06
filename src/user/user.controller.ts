@@ -14,6 +14,8 @@ import { CustomRequest } from 'src/types/request.type';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ChangePasswordDto } from './dto/changePassword.dto';
+import { UpdateNameDto } from './dto/updateName.dto';
+import { UpdateEmailDto } from './dto/updateEmail.dto';
 
 @UseGuards(AuthGuard)
 @Controller('user')
@@ -47,18 +49,21 @@ export class UserController {
   @Patch('/email')
   public async changeEmail(
     @Req() req: CustomRequest,
-    @Body('email') email: string,
+    @Body() updateEmailDto: UpdateEmailDto,
   ) {
     const { user } = req;
 
-    return await this.userService.changeEmail(user, email);
+    return await this.userService.changeEmail(user, updateEmailDto);
   }
 
   @Patch('/name')
-  public async changeName(@Req() req: CustomRequest, @Body() name: string) {
+  public async changeName(
+    @Req() req: CustomRequest,
+    @Body() updateNameDto: UpdateNameDto,
+  ) {
     const { user } = req;
 
-    return await this.userService.changeName(user, name);
+    return await this.userService.changeName(user, updateNameDto);
   }
 
   @UseInterceptors(FileInterceptor('avatar'))

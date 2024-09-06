@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { SharedFile } from '@prisma/client';
-import * as path from 'node:path';
 import { DatabaseService } from 'src/database/database.service';
 import * as uuid from 'uuid';
 
@@ -12,21 +11,55 @@ export class Shared_fileService {
     return uuid.v4();
   }
 
-  public async getFile(link: string): Promise<string> {
+  public async getFileById(fileId: string) {
+    return this.databaseService.sharedFile.findFirst({
+      where: {
+        fileId,
+      },
+    });
+  }
+
+  public async getSharedFiles(user) {
+    const { id } = user;
+
+    const sharedFiles = await this.databaseService.sharedFile.findMany({
+      where: {
+        userId: id,
+      },
+    });
+
+    return this.databaseService.file.findMany({
+      where: {
+        id: {
+          in: sharedFiles.map((sharedFile) => sharedFile.fileId),
+        },
+      },
+    });
+  }
+
+  public async getFile(link: string) {
     const sharedFile = await this.databaseService.sharedFile.findFirst({
       where: {
         link,
       },
     });
 
-    return path.resolve('static', sharedFile.localName);
+    return this.databaseService.file.findUnique({
+      where: {
+        id: sharedFile.fileId,
+      },
+    });
   }
 
   public async shareFile(user, id: string): Promise<SharedFile> {
     const { id: userId } = user;
-    const { name, localName } = await this.databaseService.file.findUnique({
+
+    await this.databaseService.file.update({
       where: {
         id,
+      },
+      data: {
+        isShared: true,
       },
     });
 
@@ -37,17 +70,25 @@ export class Shared_fileService {
             id: userId,
           },
         },
-        localName,
-        name,
         link: this.generateLink(),
+        fileId: id,
       },
     });
   }
 
-  public async deleteSharedFile(id: string): Promise<SharedFile> {
-    return this.databaseService.sharedFile.delete({
+  public async deleteSharedFile(id: string) {
+    await this.databaseService.file.update({
       where: {
         id,
+      },
+      data: {
+        isShared: false,
+      },
+    });
+
+    return this.databaseService.sharedFile.deleteMany({
+      where: {
+        fileId: id,
       },
     });
   }

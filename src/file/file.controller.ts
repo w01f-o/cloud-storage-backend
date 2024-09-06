@@ -52,8 +52,8 @@ export class FileController {
   ) {
     const { user } = req;
     const file = await this.fileService.download(user, id);
-    const filePath = path.resolve('static', file.localName);
 
+    const filePath = path.resolve('static', file.localName);
     const fileStream = fs.createReadStream(filePath);
     const filename = encodeURIComponent(
       `${file.localName.split('-').shift().trim()}.${file.localName.split('.').pop()}`,
@@ -68,7 +68,7 @@ export class FileController {
     return fileStream.pipe(res);
   }
 
-  @Post('')
+  @Post()
   @UseInterceptors(FileInterceptor('file'))
   public async upload(
     @Req() req: CustomRequest,

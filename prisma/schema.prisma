@@ -48,16 +48,16 @@ model File {
   addedAt   DateTime @default(now()) @map("created_at")
   size      Int
   type      String
+  isShared  Boolean  @default(false) @map("is_shared")
 }
 
 model SharedFile {
-  id        String   @id @default(uuid())
-  name      String
-  localName String
-  link      String
-  sharedAt  DateTime @default(now()) @map("shared_at")
-  userId    String   @map("user_id")
-  user      User     @relation(fields: [userId], references: [id])
+  id       String   @id @default(uuid())
+  fileId   String   @map("file_id")
+  link     String
+  sharedAt DateTime @default(now()) @map("shared_at")
+  userId   String   @map("user_id")
+  user     User     @relation(fields: [userId], references: [id])
 }
 
 model Token {
