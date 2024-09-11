@@ -15,6 +15,7 @@ import { UserDto } from './dto/user.dto';
 import { ActivateDto } from './dto/activate.dto';
 import { User } from '@prisma/client';
 import { ErrorsEnum } from '../types/errors.type';
+import { AuthResponse } from 'src/types/authResponse';
 
 @Injectable()
 export class AuthService {
@@ -32,13 +33,7 @@ export class AuthService {
     return bcrypt.compareSync(password, hash);
   }
 
-  private async generateAndSaveToken(user: User): Promise<{
-    user: typeof userDto;
-    refreshToken: string;
-    accessToken: string;
-    accessExpiresIn: number;
-    refreshExpiresIn: number;
-  }> {
+  private async generateAndSaveToken(user: User): Promise<AuthResponse> {
     const { id, email, isActivated, name, avatar } = user;
     const userDto = new UserDto(id, email, name, avatar, isActivated);
 
@@ -47,9 +42,12 @@ export class AuthService {
 
     return {
       user: userDto,
-      ...tokens,
-      accessExpiresIn: Date.now() + 1000 * 60 * 60,
-      refreshExpiresIn: Date.now() + 1000 * 60 * 60 * 24 * 30,
+      tokens: {
+        access: tokens.accessToken,
+        refresh: tokens.refreshToken,
+        accessExpiresIn: Date.now() + 1000 * 60 * 60,
+        refreshExpiresIn: Date.now() + 1000 * 60 * 60 * 24 * 30,
+      },
     };
   }
 
@@ -85,7 +83,7 @@ export class AuthService {
       await this.mailService.sendActivationCode(email, activationCode);
     } catch (e) {
       await this.databaseService.user.delete({ where: { id: user.id } });
-      await this.tokenService.removeToken(response.refreshToken);
+      await this.tokenService.removeToken(response.tokens.refresh);
 
       throw new InternalServerErrorException({
         message: e.message,
@@ -126,20 +124,24 @@ export class AuthService {
     return await this.tokenService.removeToken(refreshToken);
   }
 
-  public async activate(activateDto: ActivateDto): Promise<void> {
-    const { code, email } = activateDto;
-    const user = await this.databaseService.user.findUnique({
-      where: { email },
+  public async activate(user, activateDto: ActivateDto): Promise<void> {
+    const { code } = activateDto;
+    const { id: userId } = user;
+
+    const userFromDb = await this.databaseService.user.findUnique({
+      where: {
+        id: userId,
+      },
     });
 
-    if (!user) {
+    if (!userFromDb) {
       throw new UnauthorizedException({
         message: 'User with such email not found',
         type: ErrorsEnum.USER_WITH_SUCH_EMAIL_NOT_FOUND,
       });
     }
 
-    if (user.activationCode !== code) {
+    if (userFromDb.activationCode !== code) {
       throw new UnauthorizedException({
         message: 'Wrong activation code',
         type: ErrorsEnum.WRONG_ACTIVATION_CODE,
@@ -147,7 +149,9 @@ export class AuthService {
     }
 
     await this.databaseService.user.update({
-      where: { email },
+      where: {
+        id: userId,
+      },
       data: { isActivated: true },
     });
   }

@@ -1,9 +1,11 @@
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegistrationDto } from './dto/registration.dto';
 import { LoginDto } from './dto/login.dto';
 import { Response, Request } from 'express';
 import { ActivateDto } from './dto/activate.dto';
+import { CustomRequest } from 'src/types/request.type';
+import { AuthGuard } from './auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -22,7 +24,7 @@ export class AuthController {
     @Body() registrationDto: RegistrationDto,
   ) {
     const userData = await this.authService.registration(registrationDto);
-    this.setRefreshToken(res, userData.refreshToken);
+    this.setRefreshToken(res, userData.tokens.refresh);
 
     return userData;
   }
@@ -33,7 +35,7 @@ export class AuthController {
     @Body() loginDto: LoginDto,
   ) {
     const userData = await this.authService.login(loginDto);
-    this.setRefreshToken(res, userData.refreshToken);
+    this.setRefreshToken(res, userData.tokens.refresh);
 
     return userData;
   }
@@ -55,9 +57,15 @@ export class AuthController {
     return { token: deletedToken };
   }
 
+  @UseGuards(AuthGuard)
   @Post('activate')
-  public async activate(@Body() activateDto: ActivateDto) {
-    await this.authService.activate(activateDto);
+  public async activate(
+    @Req() req: CustomRequest,
+    @Body() activateDto: ActivateDto,
+  ) {
+    const { user } = req;
+
+    await this.authService.activate(user, activateDto);
 
     return {
       message: 'Account activated',
@@ -77,7 +85,7 @@ export class AuthController {
 
     const userData = await this.authService.refresh(refreshToken);
 
-    this.setRefreshToken(res, userData.refreshToken);
+    this.setRefreshToken(res, userData.tokens.refresh);
 
     return userData;
   }

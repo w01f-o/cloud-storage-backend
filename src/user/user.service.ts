@@ -247,7 +247,7 @@ export class UserService {
   }
 
   public async delete(user) {
-    const { id, refreshToken } = user;
+    const { id } = user;
     const userFromDb = await this.databaseService.user.findUnique({
       where: {
         id,
@@ -261,11 +261,15 @@ export class UserService {
         id: true,
       },
     });
-
-    await this.tokenService.removeToken(refreshToken);
-
+    console.log(userFromDb);
     userFromDb.folders.forEach(async (folder) => {
       await this.folderService.remove(user, folder.id);
+    });
+    //
+    await this.databaseService.sharedFile.deleteMany({
+      where: {
+        userId: userFromDb.id,
+      },
     });
 
     return this.databaseService.user.delete({

@@ -85,11 +85,11 @@ export class FolderService {
       },
     });
 
-    folder.files.forEach((file) => {
-      this.fileService.delete(user, file.id);
+    folder.files.forEach(async (file) => {
+      await this.fileService.delete(user, file.id);
     });
 
-    return this.databaseService.folder.delete({
+    return await this.databaseService.folder.delete({
       where: {
         id,
       },
