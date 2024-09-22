@@ -32,7 +32,7 @@ model Folder {
   userId    String   @map("user_id")
   createdAt DateTime @default(now()) @map("created_at")
   editedAt  DateTime @default(now()) @map("edited_at")
-  size      Int      @default(0)
+  size      BigInt   @default(0)
   color     String
   files     File[]
 }
