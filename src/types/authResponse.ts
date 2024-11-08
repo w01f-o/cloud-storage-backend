@@ -5,7 +5,5 @@ export interface AuthResponse {
   tokens: {
     refresh: string;
     access: string;
-    accessExpiresIn: number;
-    refreshExpiresIn: number;
   };
 }

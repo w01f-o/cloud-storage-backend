@@ -45,8 +45,6 @@ export class AuthService {
       tokens: {
         access: tokens.accessToken,
         refresh: tokens.refreshToken,
-        accessExpiresIn: Date.now() + 1000 * 60 * 60,
-        refreshExpiresIn: Date.now() + 1000 * 60 * 60 * 24 * 30,
       },
     };
   }
