@@ -31,7 +31,7 @@ export class FolderController {
   public async getAll(@Req() req: CustomRequest) {
     const { user, query } = req;
     const search = query.search as string;
-
+    console.log(user);
     return await this.folderService.getAll(user, search);
   }
 

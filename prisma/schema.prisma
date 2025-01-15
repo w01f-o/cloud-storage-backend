@@ -16,39 +16,45 @@ model User {
   isActivated    Boolean      @default(false) @map("is_activated")
   activationCode Int          @map("activation_code")
   createdAt      DateTime     @default(now()) @map("created_at")
-  editedAt       DateTime     @default(now()) @map("edited_at")
+  editedAt       DateTime     @updatedAt @map("edited_at")
   folders        Folder[]
   files          File[]
   capacity       BigInt       @default(5368709120)
   usedSpace      BigInt       @default(0) @map("used_space")
   freeSpace      BigInt       @default(5368709120) @map("free_space")
   sharedFiles    SharedFile[]
+
+  @@map("users")
 }
 
 model Folder {
   id        String   @id @default(uuid())
   name      String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String   @map("user_id")
   createdAt DateTime @default(now()) @map("created_at")
-  editedAt  DateTime @default(now()) @map("edited_at")
+  editedAt  DateTime @updatedAt @map("edited_at")
   size      BigInt   @default(0)
   color     String
   files     File[]
+
+  @@map("folders")
 }
 
 model File {
   id        String   @id @default(uuid())
   name      String
   localName String
-  folder    Folder   @relation(fields: [folderId], references: [id])
+  folder    Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
   folderId  String   @map("folder_id")
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String   @map("user_id")
   addedAt   DateTime @default(now()) @map("created_at")
   size      Int
   type      String
   isShared  Boolean  @default(false) @map("is_shared")
+
+  @@map("files")
 }
 
 model SharedFile {
@@ -57,11 +63,15 @@ model SharedFile {
   link     String
   sharedAt DateTime @default(now()) @map("shared_at")
   userId   String   @map("user_id")
-  user     User     @relation(fields: [userId], references: [id])
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("shared_files")
 }
 
 model Token {
   id           String @id @default(uuid())
   userId       String @map("user_id")
   refreshToken String @map("refresh_token")
+
+  @@map("tokens")
 }
