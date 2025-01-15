@@ -26,6 +26,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
     AuthModule,
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'static', 'public'),
+      serveRoot: '/cloud-api'
     }),
     MailModule,
     TokenModule,
