@@ -70,6 +70,13 @@ export class TokenService {
   }
 
   public async validateRefreshToken(token: string) {
+    console.log('TOKEN IN VALIDATE', token);
+
+    console.log(
+      'process.env.JWT_REFRESH_SECRET',
+      process.env.JWT_REFRESH_SECRET,
+    );
+
     return await this.jwtService.verifyAsync(token, {
       secret: process.env.JWT_REFRESH_SECRET,
     });
