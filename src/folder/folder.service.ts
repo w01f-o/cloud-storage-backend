@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { Folder, User } from '@prisma/client';
+import { Folder } from '@prisma/client';
 import { DatabaseService } from 'src/database/database.service';
 import { CreateFolderDto } from './dto/create.dto';
 import { TokenService } from 'src/token/token.service';
 import { UpdateFolderDto } from './dto/update.dto';
 import { FileService } from 'src/file/file.service';
+import { AuthDto } from '../auth/dto/auth.dto';
 
 @Injectable()
 export class FolderService {
@@ -14,7 +15,7 @@ export class FolderService {
     private readonly fileService: FileService,
   ) {}
 
-  public async getAll(user: User, search: string): Promise<Folder[]> {
+  public async getAll(user: AuthDto, search: string): Promise<Folder[]> {
     const { id } = user;
 
     return this.databaseService.folder.findMany({
@@ -30,7 +31,7 @@ export class FolderService {
     });
   }
 
-  public async getOne(user: User, folderId: string): Promise<Folder> {
+  public async getOne(user: AuthDto, folderId: string): Promise<Folder> {
     const { id } = user;
 
     return this.databaseService.folder.findUnique({
@@ -41,7 +42,7 @@ export class FolderService {
     });
   }
 
-  public async getLastUpdated(user): Promise<Folder[]> {
+  public async getLastUpdated(user: AuthDto): Promise<Folder[]> {
     const { id: userId } = user;
 
     return this.databaseService.folder.findMany({
@@ -55,7 +56,10 @@ export class FolderService {
     });
   }
 
-  public async create(user, createFolderDto: CreateFolderDto): Promise<Folder> {
+  public async create(
+    user: AuthDto,
+    createFolderDto: CreateFolderDto,
+  ): Promise<Folder> {
     const { color, name } = createFolderDto;
     const { id } = user;
 
@@ -72,7 +76,7 @@ export class FolderService {
     });
   }
 
-  public async remove(user, id: string): Promise<Folder> {
+  public async remove(user: AuthDto, id: string): Promise<Folder> {
     const { id: userId } = user;
 
     const folder = await this.databaseService.folder.findUnique({
@@ -97,7 +101,7 @@ export class FolderService {
   }
 
   public async changeColor(
-    user,
+    user: AuthDto,
     id: string,
     updateFolderDto: UpdateFolderDto,
   ): Promise<Folder> {

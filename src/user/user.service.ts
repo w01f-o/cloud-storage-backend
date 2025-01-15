@@ -10,10 +10,10 @@ import { MailService } from 'src/mail/mail.service';
 import { ErrorsEnum } from 'src/types/errors.type';
 import { ChangePasswordDto } from './dto/changePassword.dto';
 import { AuthService } from 'src/auth/auth.service';
-import { TokenService } from 'src/token/token.service';
 import { FolderService } from 'src/folder/folder.service';
 import { UpdateNameDto } from './dto/updateName.dto';
 import { UpdateEmailDto } from './dto/updateEmail.dto';
+import { AuthDto } from '../auth/dto/auth.dto';
 
 @Injectable()
 export class UserService {
@@ -22,11 +22,10 @@ export class UserService {
     private readonly mailService: MailService,
     private readonly fileService: FileService,
     private readonly authService: AuthService,
-    private readonly tokenService: TokenService,
     private readonly folderService: FolderService,
   ) {}
 
-  public async getUser(user) {
+  public async getUser(user: AuthDto) {
     const { id: userId } = user;
     const { avatar, name, email, id, isActivated } =
       await this.databaseService.user.findUnique({
@@ -44,7 +43,7 @@ export class UserService {
     };
   }
 
-  public async sendActivationCode(user) {
+  public async sendActivationCode(user: AuthDto) {
     const { id: userId } = user;
 
     const { activationCode, email } =
@@ -65,7 +64,10 @@ export class UserService {
     }
   }
 
-  public async changeName(user, updateNameDto: UpdateNameDto): Promise<User> {
+  public async changeName(
+    user: AuthDto,
+    updateNameDto: UpdateNameDto,
+  ): Promise<User> {
     const { id } = user;
     const { name } = updateNameDto;
 
@@ -80,7 +82,7 @@ export class UserService {
     });
   }
 
-  public async getStorage(user) {
+  public async getStorage(user: AuthDto) {
     const { id: userId } = user;
     const storageFromDb = await this.databaseService.user.findUnique({
       where: {
@@ -123,7 +125,7 @@ export class UserService {
   }
 
   public async changeEmail(
-    user,
+    user: AuthDto,
     updateEmailDto: UpdateEmailDto,
   ): Promise<User> {
     const { id } = user;
@@ -173,7 +175,7 @@ export class UserService {
   }
 
   public async changePassword(
-    user,
+    user: AuthDto,
     changePasswordDto: ChangePasswordDto,
   ): Promise<User> {
     const { id } = user;
@@ -207,7 +209,10 @@ export class UserService {
     });
   }
 
-  public async changeAvatar(user, avatar: Express.Multer.File): Promise<User> {
+  public async changeAvatar(
+    user: AuthDto,
+    avatar: Express.Multer.File,
+  ): Promise<User> {
     const { id } = user;
     const { avatar: oldAvatar } = await this.databaseService.user.findUnique({
       where: {
@@ -246,7 +251,7 @@ export class UserService {
     });
   }
 
-  public async delete(user) {
+  public async delete(user: AuthDto) {
     const { id } = user;
 
     const userFromDb = await this.databaseService.user.findUnique({

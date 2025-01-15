@@ -4,17 +4,14 @@ import { UploadFileDto } from './dto/upload.dto';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import { File, Folder, User } from '@prisma/client';
-import { TokenService } from 'src/token/token.service';
 import { UpdateFileDto } from './dto/update.dto';
 import * as mime from 'mime-types';
 import { fileTypes } from 'src/types/fileTypes.type';
+import { AuthDto } from '../auth/dto/auth.dto';
 
 @Injectable()
 export class FileService {
-  public constructor(
-    private readonly databaseService: DatabaseService,
-    private readonly tokenService: TokenService,
-  ) {}
+  public constructor(private readonly databaseService: DatabaseService) {}
 
   private generateFileName(name: string, userId: string): string {
     const nameArray = name.split('.');
@@ -102,7 +99,7 @@ export class FileService {
     return fileTypes[mime.lookup(type)] ?? 'other';
   }
 
-  public async getAll(user, folderId: string): Promise<File[]> {
+  public async getAll(user: AuthDto, folderId: string): Promise<File[]> {
     const { id: userId } = user;
 
     return this.databaseService.file.findMany({
@@ -113,7 +110,7 @@ export class FileService {
     });
   }
 
-  public async getLastUploaded(user): Promise<File[]> {
+  public async getLastUploaded(user: AuthDto): Promise<File[]> {
     const { id: userId } = user;
 
     return this.databaseService.file.findMany({
@@ -127,7 +124,7 @@ export class FileService {
     });
   }
 
-  public async download(user, id: string) {
+  public async download(user: AuthDto, id: string) {
     const { id: userId } = user;
 
     return this.databaseService.file.findUnique({
@@ -139,7 +136,7 @@ export class FileService {
   }
 
   public async upload(
-    user,
+    user: AuthDto,
     uploadFileDto: UploadFileDto,
     file: Express.Multer.File,
   ): Promise<File> {
@@ -185,7 +182,7 @@ export class FileService {
     return createdFile;
   }
 
-  public async delete(user, id: string): Promise<File> {
+  public async delete(user: AuthDto, id: string): Promise<File> {
     const { id: userId } = user;
     const file = await this.databaseService.file.delete({
       where: {
@@ -214,7 +211,7 @@ export class FileService {
   }
 
   public async update(
-    user,
+    user: AuthDto,
     updateFileDto: UpdateFileDto,
     id: string,
   ): Promise<File> {
