@@ -22,6 +22,7 @@ async function bootstrap() {
     credentials: true,
     origin: '*',
   });
+  app.setGlobalPrefix('/cloud-api');
 
   await app.listen(5000);
 }
