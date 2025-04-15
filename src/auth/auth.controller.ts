@@ -1,11 +1,11 @@
 import { Body, Controller, Post, Req, Res, UseGuards } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { RegistrationDto } from './dto/registration.dto';
-import { LoginDto } from './dto/login.dto';
-import { Response, Request } from 'express';
-import { ActivateDto } from './dto/activate.dto';
+import { Request, Response } from 'express';
 import { CustomRequest } from 'src/types/request.type';
 import { AuthGuard } from './auth.guard';
+import { AuthService } from './auth.service';
+import { ActivateDto } from './dto/activate.dto';
+import { LoginDto } from './dto/login.dto';
+import { RegistrationDto } from './dto/registration.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -16,6 +16,10 @@ export class AuthController {
       maxAge: +process.env.JWT_COOKIE_MAX_AGE,
       httpOnly: true,
     });
+  }
+
+  private clearRefreshToken(res: Response) {
+    res.clearCookie('refreshToken', {});
   }
 
   @Post('registration')
@@ -52,7 +56,7 @@ export class AuthController {
     }
 
     const deletedToken = await this.authService.logout(refreshToken);
-    res.clearCookie('refreshToken');
+    this.clearRefreshToken(res);
 
     return { token: deletedToken };
   }

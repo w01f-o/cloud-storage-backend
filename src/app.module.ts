@@ -1,19 +1,19 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { DatabaseModule } from './database/database.module';
-import { UserModule } from './user/user.module';
-import { FolderModule } from './folder/folder.module';
-import { FileModule } from './file/file.module';
-import { Shared_fileModule } from './shared_file/shared_file.module';
-import { AuthModule } from './auth/auth.module';
-import { ServeStaticModule } from '@nestjs/serve-static';
-import { join } from 'path';
-import { MailModule } from './mail/mail.module';
-import { TokenModule } from './token/token.module';
 import { MailerModule } from '@nestjs-modules/mailer';
-import * as process from 'node:process';
-import { ConfigModule } from '@nestjs/config';
-import { FileAccessMiddleware } from './file/file.middleware';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import * as process from 'node:process';
+import { join } from 'path';
+import { AuthModule } from './auth/auth.module';
+import { DatabaseModule } from './database/database.module';
+import { FileAccessMiddleware } from './file/file.middleware';
+import { FileModule } from './file/file.module';
+import { FolderModule } from './folder/folder.module';
+import { MailModule } from './mail/mail.module';
+import { Shared_fileModule } from './shared_file/shared_file.module';
+import { TokenModule } from './token/token.module';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -26,7 +26,6 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
     AuthModule,
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'static', 'public'),
-      serveRoot: '/cloud-api'
     }),
     MailModule,
     TokenModule,

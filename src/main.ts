@@ -1,7 +1,7 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import * as cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import * as cookieParser from 'cookie-parser';
+import { AppModule } from './app.module';
 
 declare global {
   interface BigInt {
@@ -22,7 +22,7 @@ async function bootstrap() {
     credentials: true,
     origin: '*',
   });
-  app.setGlobalPrefix('/cloud-api');
+  app.setGlobalPrefix('/api');
 
   await app.listen(5000);
 }

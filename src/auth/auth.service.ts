@@ -163,12 +163,7 @@ export class AuthService {
     }
 
     const userData = await this.tokenService.validateRefreshToken(refreshToken);
-
-    console.log('userData', userData);
-
     const tokenFromDb = await this.tokenService.findToken(refreshToken);
-
-    console.log('tokenFromDb', tokenFromDb);
 
     if (!userData || !tokenFromDb) {
       throw new UnauthorizedException({
