@@ -1,3 +1,4 @@
+import { File } from '@nest-lab/fastify-multer';
 import { Injectable } from '@nestjs/common';
 import { User } from '@prisma/client';
 import { hash } from 'argon2';
@@ -75,7 +76,7 @@ export class UserService {
   public async update(
     id: string,
     dto: UpdateUserDto,
-    avatarFile: Express.Multer.File
+    avatarFile: File
   ): Promise<UserResponse> {
     const user = await this.database.user.findUnique({
       where: { id },

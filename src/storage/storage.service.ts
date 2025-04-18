@@ -1,3 +1,4 @@
+import { File } from '@nest-lab/fastify-multer';
 import { Injectable } from '@nestjs/common';
 import { mkdir, unlink, writeFile } from 'fs/promises';
 import { extname, join } from 'path';
@@ -19,7 +20,7 @@ export class StorageService {
   }
 
   public async saveFile(
-    file: Express.Multer.File,
+    file: File,
     options?: { isPublic: boolean }
   ): Promise<string> {
     const fileName = `${Date.now()}-${uuid()}${extname(file.originalname)}`;

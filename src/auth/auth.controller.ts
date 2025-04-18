@@ -1,16 +1,6 @@
-import {
-  Body,
-  Controller,
-  Param,
-  Patch,
-  Post,
-  Req,
-  Res,
-  UseInterceptors,
-} from '@nestjs/common';
-import { NoFilesInterceptor } from '@nestjs/platform-express';
+import { Body, Controller, Param, Patch, Post, Req, Res } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { Request, Response } from 'express';
+import { FastifyReply, FastifyRequest } from 'fastify';
 import { AuthService } from './auth.service';
 import { ActivateDto } from './dto/activate.dto';
 import { LoginDto } from './dto/login.dto';
@@ -22,17 +12,16 @@ import { AuthResponse } from './responses/auth.response';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @UseInterceptors(NoFilesInterceptor())
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
   async login(
     @Body() dto: LoginDto,
-    @Res({ passthrough: true }) res: Response
+    @Res({ passthrough: true }) reply: FastifyReply
   ): Promise<AuthResponse> {
     const { user, refreshToken, accessToken } =
       await this.authService.login(dto);
 
-    this.authService.addTokensToCookie(res, { accessToken, refreshToken });
+    this.authService.addTokensToCookie(reply, { accessToken, refreshToken });
 
     return new AuthResponse({ user, accessToken });
   }
@@ -40,23 +29,23 @@ export class AuthController {
   @Post('register')
   async register(
     @Body() dto: RegisterDto,
-    @Res({ passthrough: true }) res: Response
+    @Res({ passthrough: true }) reply: FastifyReply
   ): Promise<AuthResponse> {
     const { user, refreshToken, accessToken } =
       await this.authService.register(dto);
 
-    this.authService.addTokensToCookie(res, { accessToken, refreshToken });
+    this.authService.addTokensToCookie(reply, { accessToken, refreshToken });
 
     return new AuthResponse({ user, accessToken });
   }
 
   @Post('refresh')
   async refresh(
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply
   ): Promise<AuthResponse> {
     const refreshTokenFromCookie: string | null =
-      req.cookies[this.authService.REFRESH_TOKEN_NAME];
+      request.cookies[this.authService.REFRESH_TOKEN_NAME];
 
     if (!refreshTokenFromCookie) {
       throw new InvalidRefreshTokenException();
@@ -66,7 +55,7 @@ export class AuthController {
       refreshTokenFromCookie
     );
 
-    this.authService.addTokensToCookie(res, { accessToken, refreshToken });
+    this.authService.addTokensToCookie(reply, { accessToken, refreshToken });
 
     return new AuthResponse({ user: user, accessToken: accessToken });
   }
@@ -82,8 +71,10 @@ export class AuthController {
   }
 
   @Post('logout')
-  async logout(@Res({ passthrough: true }) res: Response): Promise<boolean> {
-    await this.authService.logout(res);
+  async logout(
+    @Res({ passthrough: true }) reply: FastifyReply
+  ): Promise<boolean> {
+    await this.authService.logout(reply);
 
     return true;
   }

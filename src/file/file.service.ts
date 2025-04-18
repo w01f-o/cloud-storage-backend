@@ -5,6 +5,7 @@ import {
 import { DatabaseService } from '@/database/database.service';
 import { FolderService } from '@/folder/folder.service';
 import { StorageService } from '@/storage/storage.service';
+import { File } from '@nest-lab/fastify-multer';
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { Folder, Prisma, User } from '@prisma/client';
 import * as mime from 'mime-types';
@@ -134,7 +135,7 @@ export class FileService {
   public async upload(
     user: User,
     folderId: string,
-    file: Express.Multer.File
+    file: File
   ): Promise<FileResponse> {
     const { id: userId, freeSpace } = user;
     if (freeSpace < file.size) throw new NotEnoughSpaceException();

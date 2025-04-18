@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { User } from '@prisma/client';
+import { FastifyRequest } from 'fastify';
 import { ExtractJwt, JwtFromRequestFunction, Strategy } from 'passport-jwt';
 import { InvalidAccessTokenException } from './exceptions/InvalidAccessToken.exception';
 import { JwtPayload } from './types/tokens.type';
@@ -13,14 +14,14 @@ export class AuthStrategy extends PassportStrategy(Strategy) {
     configService: ConfigService,
     private readonly database: DatabaseService
   ) {
-    const extractJwtFromCookie: () => JwtFromRequestFunction = () => req => {
-      return req.cookies?.accessToken ?? null;
-    };
+    const extractJwtFromCookie: () => JwtFromRequestFunction =
+      () => (req: FastifyRequest) =>
+        req.cookies.accessToken ?? null;
 
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
-        ExtractJwt.fromAuthHeaderAsBearerToken(),
         extractJwtFromCookie(),
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
       ]),
       ignoreExpiration: true,
       secretOrKey: configService.get('JWT_SECRET'),

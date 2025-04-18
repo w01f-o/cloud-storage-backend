@@ -1,9 +1,13 @@
+import fastifyCookie from '@fastify/cookie';
+import fastifyMultipart from '@fastify/multipart';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
-import { NestExpressApplication } from '@nestjs/platform-express';
+import {
+  FastifyAdapter,
+  NestFastifyApplication,
+} from '@nestjs/platform-fastify';
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
-import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
 declare global {
@@ -17,7 +21,10 @@ BigInt.prototype.toJSON = function (): string {
 };
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter()
+  );
 
   const configService = app.get(ConfigService);
   const swaggerConfig = new DocumentBuilder()
@@ -29,7 +36,8 @@ async function bootstrap(): Promise<void> {
     SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, documentFactory);
 
-  app.use(cookieParser());
+  app.register(fastifyCookie);
+  app.register(fastifyMultipart);
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
@@ -40,10 +48,9 @@ async function bootstrap(): Promise<void> {
     origin: '*',
     exposedHeaders: ['set-cookie'],
   });
-  app.disable('x-powered-by');
   app.setGlobalPrefix('/api/v1');
 
-  await app.listen(configService.get('PORT'));
+  await app.listen(configService.get('PORT'), '0.0.0.0');
 }
 
 bootstrap();

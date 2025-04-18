@@ -2,12 +2,13 @@ import { DatabaseService } from '@/database/database.service';
 import { MailerService } from '@/mailer/mailer.service';
 import { UserNotFoundException } from '@/user/exceptions/UserNotFound.exception';
 import { UserService } from '@/user/user.service';
+import { CookieSerializeOptions } from '@fastify/cookie';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
 import { verify } from 'argon2';
-import { CookieOptions, Response } from 'express';
+import { FastifyReply } from 'fastify';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { InvalidActivationCodeException } from './exceptions/InvalidActivationCode.exception';
@@ -150,48 +151,47 @@ export class AuthService {
     };
   }
 
-  public async logout(res: Response): Promise<void> {
-    this.removeTokensFromCookie(res);
+  public async logout(reply: FastifyReply): Promise<void> {
+    this.removeTokensFromCookie(reply);
   }
 
-  public addTokensToCookie(res: Response, tokens: JwtTokens): void {
+  public addTokensToCookie(reply: FastifyReply, tokens: JwtTokens): void {
     const refreshExpiresIn = new Date();
     refreshExpiresIn.setDate(
       refreshExpiresIn.getDate() + parseInt(this.EXPIRE_DAY_REFRESH_TOKEN)
     );
 
     const accessTokenExpiresIn = new Date();
-    accessTokenExpiresIn.setMinutes(
-      accessTokenExpiresIn.getMinutes() +
-        parseInt(this.EXPIRE_MINUTES_ACCESS_TOKEN)
-    );
+    accessTokenExpiresIn.setFullYear(accessTokenExpiresIn.getFullYear() + 10);
 
-    const options: CookieOptions = {
+    const options: CookieSerializeOptions = {
       httpOnly: true,
       domain: this.configService.get('SERVER_DOMAIN'),
       sameSite: 'lax',
       secure: this.configService.get('NODE_ENV') === 'production',
     };
 
-    res.cookie(this.REFRESH_TOKEN_NAME, tokens.refreshToken, {
-      ...options,
-      expires: refreshExpiresIn,
-    });
-    res.cookie(this.ACCESS_TOKEN_NAME, tokens.accessToken, {
-      ...options,
-      expires: accessTokenExpiresIn,
-    });
+    reply
+      .cookie(this.REFRESH_TOKEN_NAME, tokens.refreshToken, {
+        ...options,
+        expires: refreshExpiresIn,
+      })
+      .cookie(this.ACCESS_TOKEN_NAME, tokens.accessToken, {
+        ...options,
+        expires: accessTokenExpiresIn,
+      });
   }
 
-  public removeTokensFromCookie(res: Response): void {
-    const options: CookieOptions = {
+  public removeTokensFromCookie(reply: FastifyReply): void {
+    const options: CookieSerializeOptions = {
       httpOnly: true,
       domain: this.configService.get('SERVER_DOMAIN'),
       sameSite: 'lax',
       secure: this.configService.get('NODE_ENV') === 'production',
     };
 
-    res.clearCookie(this.REFRESH_TOKEN_NAME, options);
-    res.clearCookie(this.ACCESS_TOKEN_NAME, options);
+    reply
+      .clearCookie(this.REFRESH_TOKEN_NAME, options)
+      .clearCookie(this.ACCESS_TOKEN_NAME, options);
   }
 }

@@ -1,3 +1,4 @@
+import { File, FileInterceptor } from '@nest-lab/fastify-multer';
 import {
   Body,
   Controller,
@@ -7,7 +8,6 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import { User } from '@prisma/client';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { UseAuth } from 'src/auth/decorators/use-auth.decorator';
@@ -32,7 +32,7 @@ export class UserController {
     @CurrentUser('id') id: string,
     @Body() dto: UpdateUserDto,
     @UploadedFile(ValidateAvatarFilePipe())
-    avatarFile: Express.Multer.File
+    avatarFile: File
   ): Promise<UserResponse> {
     return this.userService.update(id, dto, avatarFile);
   }

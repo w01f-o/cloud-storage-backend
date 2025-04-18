@@ -8,7 +8,7 @@ import {
   Res,
   StreamableFile,
 } from '@nestjs/common';
-import { Response } from 'express';
+import { FastifyReply } from 'fastify';
 import { createReadStream } from 'fs';
 import { PaginatedResult } from 'src/_shared/paginator/paginate';
 import { PaginationQuery } from 'src/_shared/paginator/pagination.query';
@@ -52,16 +52,16 @@ export class SharedFileController {
 
   @Get('download/:link')
   async download(
-    @Res({ passthrough: true }) res: Response,
+    @Res({ passthrough: true }) reply: FastifyReply,
     @Param('link') link: string
   ): Promise<StreamableFile> {
     const { file } = await this.sharedFileService.findOneByLink(link);
     const filePath = this.storageService.getUserFilePath(file.name);
 
-    res.set({
+    reply.headers({
       'Content-Type': file.mimeType,
       'Content-Disposition': `attachment; filename="${encodeURIComponent(file.originalName)}"`,
-      'Content-Length': file.size,
+      'Content-Length': file.size.toString(),
     });
 
     return new StreamableFile(createReadStream(filePath));
