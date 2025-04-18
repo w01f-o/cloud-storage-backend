@@ -45,7 +45,7 @@ async function bootstrap(): Promise<void> {
   );
   app.enableCors({
     credentials: true,
-    origin: '*',
+    origin: configService.get('CLIENT_URL'),
     exposedHeaders: ['set-cookie'],
   });
   app.setGlobalPrefix('/api/v1');
