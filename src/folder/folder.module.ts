@@ -1,19 +1,13 @@
-import { Module } from '@nestjs/common';
-import { FolderService } from './folder.service';
+import { forwardRef, Module } from '@nestjs/common';
+import { DatabaseModule } from 'src/database/database.module';
+import { FileModule } from 'src/file/file.module';
 import { FolderController } from './folder.controller';
-import { DatabaseService } from 'src/database/database.service';
-import { TokenService } from 'src/token/token.service';
-import { JwtService } from '@nestjs/jwt';
-import { FileService } from 'src/file/file.service';
+import { FolderService } from './folder.service';
 
 @Module({
+  imports: [forwardRef(() => FileModule), DatabaseModule],
   controllers: [FolderController],
-  providers: [
-    FolderService,
-    DatabaseService,
-    TokenService,
-    JwtService,
-    FileService,
-  ],
+  providers: [FolderService],
+  exports: [FolderService],
 })
 export class FolderModule {}

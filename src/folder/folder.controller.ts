@@ -6,67 +6,78 @@ import {
   Param,
   Patch,
   Post,
-  Req,
-  UseGuards,
+  Query,
 } from '@nestjs/common';
-import { FolderService } from './folder.service';
+import { PaginatedResult } from 'src/_shared/paginator/paginate';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
+import { UseAuth } from 'src/auth/decorators/use-auth.decorator';
 import { CreateFolderDto } from './dto/create.dto';
-import { AuthGuard } from 'src/auth/auth.guard';
-import { CustomRequest } from 'src/types/request.type';
 import { UpdateFolderDto } from './dto/update.dto';
+import { FolderService } from './folder.service';
+import { FindAllFoldersQuery } from './queries/find-all.query';
+import { FolderResponse } from './responses/folder.response';
 
-@Controller('folder')
-@UseGuards(AuthGuard)
+@Controller('folders')
+@UseAuth()
 export class FolderController {
   constructor(private readonly folderService: FolderService) {}
 
-  @Get('last_updated')
-  public async getLast(@Req() req: CustomRequest) {
-    const { user } = req;
-
-    return await this.folderService.getLastUpdated(user);
+  @Get()
+  async findAll(
+    @CurrentUser('id') userId: string,
+    @Query() query: FindAllFoldersQuery
+  ): Promise<PaginatedResult<FolderResponse>> {
+    return this.folderService.findAll(userId, query);
   }
 
-  @Get()
-  public async getAll(@Req() req: CustomRequest) {
-    const { user, query } = req;
-    const search = query.search as string;
-    console.log(user);
-    return await this.folderService.getAll(user, search);
+  @Get('parent/:parentId')
+  async findAllByParent(
+    @CurrentUser('id') userId: string,
+    @Param('parentId') parentId: string,
+    @Query() query: FindAllFoldersQuery
+  ): Promise<PaginatedResult<FolderResponse>> {
+    return this.folderService.findAllByParent(userId, parentId, query);
   }
 
   @Get(':id')
-  public async getOne(@Req() req: CustomRequest, @Param('id') id: string) {
-    const { user } = req;
-
-    return await this.folderService.getOne(user, id);
+  async findOneById(
+    @CurrentUser('id') userId: string,
+    @Param('id') folderId: string
+  ): Promise<FolderResponse> {
+    return this.folderService.findOneById(userId, folderId);
   }
 
   @Post()
-  public async create(
-    @Req() req: CustomRequest,
-    @Body() createFolderDto: CreateFolderDto,
-  ) {
-    const { user } = req;
-
-    return await this.folderService.create(user, createFolderDto);
+  async create(
+    @CurrentUser('id') userId: string,
+    @Body() dto: CreateFolderDto
+  ): Promise<FolderResponse> {
+    return this.folderService.create(userId, dto);
   }
 
-  @Delete(':id')
-  public async remove(@Req() req: CustomRequest, @Param('id') id: string) {
-    const { user } = req;
-
-    return await this.folderService.remove(user, id);
+  @Post('parent/:parentId')
+  async createByParent(
+    @CurrentUser('id') userId: string,
+    @Param('parentId') parentId: string,
+    @Body() dto: CreateFolderDto
+  ): Promise<FolderResponse> {
+    return this.folderService.createByParent(userId, parentId, dto);
   }
 
   @Patch(':id')
-  public async update(
-    @Req() req: CustomRequest,
-    @Param('id') id: string,
-    @Body() updateFolderDto: UpdateFolderDto,
-  ) {
-    const { user } = req;
+  async update(
+    @CurrentUser('id') userId: string,
+    @Param('id') folderId: string,
+    @Body() dto: UpdateFolderDto
+  ): Promise<FolderResponse> {
+    return this.folderService.update(userId, folderId, dto);
+  }
 
-    return await this.folderService.changeColor(user, id, updateFolderDto);
+  @Delete(':id')
+  async delete(
+    @CurrentUser('id') userId: string,
+    @Param('id') folderId: string
+  ): Promise<FolderResponse> {
+    return this.folderService.delete(userId, folderId);
   }
 }

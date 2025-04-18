@@ -1,72 +1,31 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
-import { DatabaseService } from 'src/database/database.service';
-import { UploadFileDto } from './dto/upload.dto';
-import * as path from 'node:path';
-import * as fs from 'node:fs';
-import { File, Folder, User } from '@prisma/client';
-import { UpdateFileDto } from './dto/update.dto';
+import {
+  defaultPaginator,
+  PaginatedResult,
+} from '@/_shared/paginator/paginate';
+import { DatabaseService } from '@/database/database.service';
+import { FolderService } from '@/folder/folder.service';
+import { StorageService } from '@/storage/storage.service';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { Folder, Prisma, User } from '@prisma/client';
 import * as mime from 'mime-types';
-import { fileTypes } from 'src/types/fileTypes.type';
-import { AuthDto } from '../auth/dto/auth.dto';
+import { ResolvedFileTypes } from './enums/resolved-file-types.enum';
+import { FileNotFoundException } from './exceptions/FileNotFound.exception';
+import { NotEnoughSpaceException } from './exceptions/NotEnoughSpace.exception';
+import { FindAllFilesQuery } from './queries/find-all.query';
+import { FileResponse } from './responses/file.response';
+import { resolvedFileTypesByMimetype } from './types/resolved-file-types';
 
 @Injectable()
 export class FileService {
-  public constructor(private readonly databaseService: DatabaseService) {}
-
-  private generateFileName(name: string, userId: string): string {
-    const nameArray = name.split('.');
-    const fileName = nameArray.shift();
-    const fileExtension = nameArray.pop();
-
-    return `${fileName}-${Date.now()}-${userId}.${fileExtension}`;
-  }
-
-  public async saveFileOnServer(
-    file: Express.Multer.File,
-    originalFileName: string,
-    userId: string,
-    { isPublic }: { isPublic: boolean },
-  ): Promise<string> {
-    const fileName = this.generateFileName(originalFileName, userId);
-    const filePath = isPublic
-      ? path.resolve('static', 'public', fileName)
-      : path.resolve('static', fileName);
-    const { freeSpace } = await this.databaseService.user.findUnique({
-      where: {
-        id: userId,
-      },
-    });
-
-    if (freeSpace < file.size) {
-      throw new ForbiddenException('Not enough space');
-    }
-
-    fs.writeFile(filePath, file.buffer, (err) => {
-      if (err) {
-        throw new ForbiddenException(err);
-      }
-    });
-
-    return fileName;
-  }
-
-  public deleteFileFromServer(
-    fileName: string,
-    { isPublic }: { isPublic: boolean },
-  ): void {
-    const filePath = isPublic
-      ? path.resolve('static', 'public', fileName)
-      : path.resolve('static', fileName);
-
-    fs.unlink(filePath, (err) => {
-      if (err) {
-        throw new ForbiddenException(err);
-      }
-    });
-  }
+  public constructor(
+    private readonly database: DatabaseService,
+    @Inject(forwardRef(() => FolderService))
+    private readonly folderService: FolderService,
+    private readonly storageService: StorageService
+  ) {}
 
   private async updateUserSpace(userId: string, size: number): Promise<User> {
-    return this.databaseService.user.update({
+    return this.database.user.update({
       where: { id: userId },
       data: {
         usedSpace: {
@@ -81,9 +40,9 @@ export class FileService {
 
   private async updateFolderSize(
     folderId: string,
-    size: number,
+    size: number
   ): Promise<Folder> {
-    return this.databaseService.folder.update({
+    return this.database.folder.update({
       where: {
         id: folderId,
       },
@@ -95,67 +54,108 @@ export class FileService {
     });
   }
 
-  public getFileType(type: string): string {
-    return fileTypes[mime.lookup(type)] ?? 'other';
+  private getFileTypes(fileName: string): {
+    resolvedType: ResolvedFileTypes;
+    mimeType: string;
+  } {
+    const mimeType = mime.lookup(fileName) || ResolvedFileTypes.OTHER;
+
+    return {
+      resolvedType:
+        resolvedFileTypesByMimetype[mimeType] ?? ResolvedFileTypes.OTHER,
+      mimeType,
+    };
   }
 
-  public async getAll(user: AuthDto, folderId: string): Promise<File[]> {
-    const { id: userId } = user;
-
-    return this.databaseService.file.findMany({
-      where: {
-        folderId,
-        userId,
+  public async findAll(
+    userId: string,
+    query: FindAllFilesQuery
+  ): Promise<PaginatedResult<FileResponse>> {
+    return defaultPaginator<FileResponse, Prisma.FileFindManyArgs>(
+      this.database.file,
+      {
+        where: {
+          userId,
+          displayName: {
+            contains: query.search,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        },
+        orderBy: {
+          [query.sortBy ?? 'createdAt']: query.sortOrder ?? 'desc',
+        },
+        omit: { userId: true },
       },
-    });
+      { page: query.page, perPage: query.perPage }
+    );
   }
 
-  public async getLastUploaded(user: AuthDto): Promise<File[]> {
-    const { id: userId } = user;
+  public async findAllByFolder(
+    userId: string,
+    folderId: string,
+    query: FindAllFilesQuery
+  ): Promise<PaginatedResult<FileResponse>> {
+    await this.folderService.findOneById(userId, folderId);
 
-    return this.databaseService.file.findMany({
-      where: {
-        userId: userId,
+    return defaultPaginator<FileResponse, Prisma.FileFindManyArgs>(
+      this.database.file,
+      {
+        where: {
+          userId,
+          folderId,
+          displayName: {
+            contains: query.search,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        },
+        orderBy: {
+          [query.sortBy ?? 'createdAt']: query.sortOrder ?? 'desc',
+        },
+        omit: { userId: true, updatedAt: true },
       },
-      orderBy: {
-        addedAt: 'desc',
-      },
-      take: 5,
-    });
+      { page: query.page, perPage: query.perPage }
+    );
   }
 
-  public async download(user: AuthDto, id: string) {
-    const { id: userId } = user;
-
-    return this.databaseService.file.findUnique({
+  public async findOneById(userId: string, id: string): Promise<FileResponse> {
+    const file = await this.database.file.findUnique({
       where: {
         id,
         userId,
       },
+      omit: { userId: true, updatedAt: true },
     });
+
+    if (!file) throw new FileNotFoundException();
+
+    return file;
   }
 
   public async upload(
-    user: AuthDto,
-    uploadFileDto: UploadFileDto,
-    file: Express.Multer.File,
-  ): Promise<File> {
-    const { name, folderId } = uploadFileDto;
-    const { id: userId } = user;
-    const { size } = file;
+    user: User,
+    folderId: string,
+    file: Express.Multer.File
+  ): Promise<FileResponse> {
+    const { id: userId, freeSpace } = user;
+    if (freeSpace < file.size) throw new NotEnoughSpaceException();
 
-    const localFileName = await this.saveFileOnServer(file, name, userId, {
-      isPublic: false,
-    });
+    const fileName = await this.storageService.saveFile(file);
+    const { size, originalname } = file;
+    const { mimeType, resolvedType } = this.getFileTypes(originalname);
 
-    await this.updateUserSpace(userId, size);
-    await this.updateFolderSize(folderId, size);
+    await Promise.all([
+      this.updateUserSpace(userId, size),
+      this.updateFolderSize(folderId, size),
+    ]);
 
-    const createdFile = await this.databaseService.file.create({
+    return this.database.file.create({
       data: {
-        name,
-        localName: localFileName,
-        size: file.size,
+        name: fileName,
+        mimeType,
+        size: size,
+        resolvedType,
+        originalName: originalname,
+        displayName: originalname,
         user: {
           connect: {
             id: userId,
@@ -166,65 +166,22 @@ export class FileService {
             id: folderId,
           },
         },
-        type: this.getFileType(file.originalname.split('.').pop()),
       },
+      omit: { userId: true, updatedAt: true },
     });
-
-    await this.databaseService.folder.update({
-      where: {
-        id: folderId,
-      },
-      data: {
-        editedAt: new Date(),
-      },
-    });
-
-    return createdFile;
   }
 
-  public async delete(user: AuthDto, id: string): Promise<File> {
-    const { id: userId } = user;
-    const file = await this.databaseService.file.delete({
-      where: {
-        userId,
-        id,
-      },
-    });
+  public async delete(userId: string, id: string): Promise<FileResponse> {
+    const file = await this.findOneById(userId, id);
 
-    await this.databaseService.user.update({
-      where: {
-        id: userId,
-      },
-      data: {
-        freeSpace: {
-          increment: file.size,
-        },
-        usedSpace: {
-          decrement: file.size,
-        },
-      },
-    });
+    const [deletedFile] = await Promise.all([
+      this.database.file.delete({
+        where: { id, userId },
+        omit: { userId: true, updatedAt: true },
+      }),
+      this.storageService.deleteUserFile(file.name),
+    ]);
 
-    this.deleteFileFromServer(file.localName, { isPublic: false });
-
-    return file;
-  }
-
-  public async update(
-    user: AuthDto,
-    updateFileDto: UpdateFileDto,
-    id: string,
-  ): Promise<File> {
-    const { id: userId } = user;
-
-    return this.databaseService.file.update({
-      where: {
-        userId,
-        id,
-      },
-      data: {
-        name: updateFileDto.name,
-      },
-    });
+    return deletedFile;
   }
 }

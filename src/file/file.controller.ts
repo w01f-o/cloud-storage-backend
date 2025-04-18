@@ -1,100 +1,97 @@
+import { PaginatedResult } from '@/_shared/paginator/paginate';
+import { PaginationQuery } from '@/_shared/paginator/pagination.query';
+import { CurrentUser } from '@/auth/decorators/current-user.decorator';
+import { UseAuth } from '@/auth/decorators/use-auth.decorator';
+import { StorageService } from '@/storage/storage.service';
 import {
-  Body,
   Controller,
   Delete,
   Get,
   Param,
-  Patch,
   Post,
-  Req,
+  Query,
   Res,
+  StreamableFile,
   UploadedFile,
-  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileService } from './file.service';
-import { CustomRequest } from 'src/types/request.type';
-import { UploadFileDto } from './dto/upload.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { AuthGuard } from 'src/auth/auth.guard';
-import * as fs from 'node:fs';
+import { User } from '@prisma/client';
 import { Response } from 'express';
-import * as path from 'node:path';
-import { UpdateFileDto } from './dto/update.dto';
+import { createReadStream } from 'fs';
+import { FileAreRequiredException } from './exceptions/FileAreRequired.exception';
+import { FileService } from './file.service';
+import { FindAllFilesQuery } from './queries/find-all.query';
+import { FileResponse } from './responses/file.response';
 
-@UseGuards(AuthGuard)
-@Controller('file')
+@UseAuth()
+@Controller('files')
 export class FileController {
-  constructor(private readonly fileService: FileService) {}
+  constructor(
+    private readonly fileService: FileService,
+    private readonly storageService: StorageService
+  ) {}
 
   @Get()
-  public async getAll(@Req() req: CustomRequest) {
-    const {
-      user,
-      query: { folder },
-    } = req;
-
-    return await this.fileService.getAll(user, folder as string);
+  async findAll(
+    @CurrentUser('id') userId: string,
+    @Query() query: FindAllFilesQuery
+  ): Promise<PaginatedResult<FileResponse>> {
+    return this.fileService.findAll(userId, query);
   }
 
-  @Get('last_uploaded')
-  public async getLast(@Req() req: CustomRequest) {
-    const { user } = req;
-
-    return await this.fileService.getLastUploaded(user);
+  @Get('folder/:folderId')
+  async findAllByFolder(
+    @CurrentUser('id') userId: string,
+    @Param('folderId') folderId: string,
+    @Query() paginationQuery: PaginationQuery
+  ): Promise<PaginatedResult<FileResponse>> {
+    return this.fileService.findAllByFolder(userId, folderId, paginationQuery);
   }
 
   @Get(':id')
-  public async download(
-    @Req() req: CustomRequest,
-    @Res() res: Response,
-    @Param('id') id: string,
-  ) {
-    const { user } = req;
-    const file = await this.fileService.download(user, id);
+  async findOneById(
+    @CurrentUser('id') userId: string,
+    @Param('id') fileId: string
+  ): Promise<FileResponse> {
+    return this.fileService.findOneById(userId, fileId);
+  }
 
-    const filePath = path.resolve('static', file.localName);
-    const fileStream = fs.createReadStream(filePath);
-    const filename = encodeURIComponent(
-      `${file.localName.split('-').shift().trim()}.${file.localName.split('.').pop()}`,
-    );
+  @Get('download/:id')
+  async download(
+    @Res({ passthrough: true }) res: Response,
+    @CurrentUser('id') userId: string,
+    @Param('id') fileId: string
+  ): Promise<StreamableFile> {
+    const file = await this.fileService.findOneById(userId, fileId);
+    const filePath = this.storageService.getUserFilePath(file.name);
 
     res.set({
-      'Content-Type': 'application/octet-stream',
-      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Type': file.mimeType,
+      'Content-Disposition': `attachment; filename="${encodeURIComponent(file.originalName)}"`,
       'Content-Length': file.size,
     });
 
-    return fileStream.pipe(res);
+    return new StreamableFile(createReadStream(filePath));
   }
 
-  @Post()
   @UseInterceptors(FileInterceptor('file'))
-  public async upload(
-    @Req() req: CustomRequest,
-    @Body() uploadFileDto: UploadFileDto,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-    const { user } = req;
+  @Post('folder/:folderId')
+  async upload(
+    @CurrentUser() user: User,
+    @Param('folderId') folderId: string,
+    @UploadedFile() file: Express.Multer.File
+  ): Promise<FileResponse> {
+    if (!file) throw new FileAreRequiredException();
 
-    return await this.fileService.upload(user, uploadFileDto, file);
+    return this.fileService.upload(user, folderId, file);
   }
 
   @Delete(':id')
-  public async delete(@Req() req: CustomRequest, @Param('id') id: string) {
-    const { user } = req;
-
-    return await this.fileService.delete(user, id);
-  }
-
-  @Patch(':id')
-  public async update(
-    @Req() req: CustomRequest,
-    @Body() updateFileDto: UpdateFileDto,
-    @Param('id') id: string,
-  ) {
-    const { user } = req;
-
-    return await this.fileService.update(user, updateFileDto, id);
+  async delete(
+    @CurrentUser('id') userId: string,
+    @Param('id') fileId: string
+  ): Promise<FileResponse> {
+    return this.fileService.delete(userId, fileId);
   }
 }

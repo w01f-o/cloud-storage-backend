@@ -1,123 +1,183 @@
-import { Injectable } from '@nestjs/common';
-import { Folder } from '@prisma/client';
+import { FileService } from '@/file/file.service';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import {
+  defaultPaginator,
+  PaginatedResult,
+} from 'src/_shared/paginator/paginate';
 import { DatabaseService } from 'src/database/database.service';
 import { CreateFolderDto } from './dto/create.dto';
-import { TokenService } from 'src/token/token.service';
 import { UpdateFolderDto } from './dto/update.dto';
-import { FileService } from 'src/file/file.service';
-import { AuthDto } from '../auth/dto/auth.dto';
+import { FolderNotFoundException } from './exceptions/FolderNotFound.exception';
+import { FindAllFoldersQuery } from './queries/find-all.query';
+import { FolderResponse } from './responses/folder.response';
 
 @Injectable()
 export class FolderService {
   public constructor(
-    private readonly databaseService: DatabaseService,
-    private readonly tokenService: TokenService,
-    private readonly fileService: FileService,
+    private readonly database: DatabaseService,
+    @Inject(forwardRef(() => FileService))
+    private readonly fileService: FileService
   ) {}
 
-  public async getAll(user: AuthDto, search: string): Promise<Folder[]> {
-    const { id } = user;
-
-    return this.databaseService.folder.findMany({
-      where: {
-        userId: id,
-        name: {
-          contains: search,
+  public async findAll(
+    userId: string,
+    query: FindAllFoldersQuery
+  ): Promise<PaginatedResult<FolderResponse>> {
+    return defaultPaginator<FolderResponse, Prisma.FolderFindManyArgs>(
+      this.database.folder,
+      {
+        where: {
+          userId,
+          name: {
+            contains: query.search,
+            mode: Prisma.QueryMode.insensitive,
+          },
+          parentId: null,
         },
+        orderBy: {
+          [query.sortBy ?? 'createdAt']: query.sortOrder ?? 'desc',
+        },
+        include: { children: true },
+        omit: { userId: true },
       },
-      orderBy: {
-        editedAt: 'desc',
-      },
-    });
+      { page: query.page, perPage: query.perPage }
+    );
   }
 
-  public async getOne(user: AuthDto, folderId: string): Promise<Folder> {
-    const { id } = user;
+  public async findAllByParent(
+    userId: string,
+    parentId: string,
+    query: FindAllFoldersQuery
+  ): Promise<PaginatedResult<FolderResponse>> {
+    return defaultPaginator<FolderResponse, Prisma.FolderFindManyArgs>(
+      this.database.folder,
+      {
+        where: {
+          userId,
+          parentId,
+          name: {
+            contains: query.search,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        },
+        orderBy: {
+          [query.sortBy ?? 'createdAt']: query.sortOrder ?? 'desc',
+        },
+        include: { children: true },
+        omit: { userId: true },
+      },
+      { page: query.page, perPage: query.perPage }
+    );
+  }
 
-    return this.databaseService.folder.findUnique({
+  public async findOneById(
+    userId: string,
+    folderId: string
+  ): Promise<FolderResponse> {
+    const folder = await this.database.folder.findUnique({
       where: {
         id: folderId,
-        userId: id,
-      },
-    });
-  }
-
-  public async getLastUpdated(user: AuthDto): Promise<Folder[]> {
-    const { id: userId } = user;
-
-    return this.databaseService.folder.findMany({
-      where: {
         userId,
       },
-      orderBy: {
-        editedAt: 'desc',
-      },
-      take: 5,
+      include: { children: true },
+      omit: { userId: true },
     });
+
+    if (!folder) throw new FolderNotFoundException();
+
+    return folder;
   }
 
   public async create(
-    user: AuthDto,
-    createFolderDto: CreateFolderDto,
-  ): Promise<Folder> {
-    const { color, name } = createFolderDto;
-    const { id } = user;
-
-    return this.databaseService.folder.create({
+    userId: string,
+    dto: CreateFolderDto
+  ): Promise<FolderResponse> {
+    return this.database.folder.create({
       data: {
-        color,
-        name,
+        ...dto,
         user: {
           connect: {
-            id,
+            id: userId,
           },
         },
       },
+      include: { children: true },
+      omit: { userId: true },
     });
   }
 
-  public async remove(user: AuthDto, id: string): Promise<Folder> {
-    const { id: userId } = user;
+  public async createByParent(
+    userId: string,
+    parentId: string,
+    dto: CreateFolderDto
+  ): Promise<FolderResponse> {
+    await this.findOneById(userId, parentId);
 
-    const folder = await this.databaseService.folder.findUnique({
-      where: {
-        id,
-        userId,
+    return this.database.folder.create({
+      data: {
+        ...dto,
+        user: {
+          connect: {
+            id: userId,
+          },
+        },
+        parent: {
+          connect: {
+            id: parentId,
+          },
+        },
       },
-      include: {
-        files: true,
-      },
-    });
-
-    await Promise.all(
-      folder.files.map((file) => this.fileService.delete(user, file.id)),
-    );
-
-    return this.databaseService.folder.delete({
-      where: {
-        id,
-      },
+      include: { children: true },
+      omit: { userId: true },
     });
   }
 
-  public async changeColor(
-    user: AuthDto,
-    id: string,
-    updateFolderDto: UpdateFolderDto,
-  ): Promise<Folder> {
-    const { id: userId } = user;
-    const { color, name } = updateFolderDto;
+  public async update(
+    userId: string,
+    folderId: string,
+    dto: UpdateFolderDto
+  ): Promise<FolderResponse> {
+    await this.findOneById(userId, folderId);
 
-    return this.databaseService.folder.update({
+    return this.database.folder.update({
       where: {
-        id,
+        id: folderId,
         userId,
       },
       data: {
-        color,
-        name,
-        editedAt: new Date(),
+        ...dto,
       },
+      include: { children: true },
+      omit: { userId: true },
+    });
+  }
+
+  public async delete(
+    userId: string,
+    folderId: string
+  ): Promise<FolderResponse> {
+    const { files } = await this.database.folder.findUnique({
+      where: {
+        id: folderId,
+        userId,
+      },
+      include: {
+        files: { select: { id: true } },
+      },
+    });
+
+    await Promise.allSettled(
+      files.map(({ id }) => this.fileService.delete(userId, id))
+    );
+
+    return this.database.folder.delete({
+      where: {
+        id: folderId,
+        userId,
+      },
+      include: { children: true },
+      omit: { userId: true },
     });
   }
 }

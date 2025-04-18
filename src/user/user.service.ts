@@ -1,289 +1,135 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { User } from '@prisma/client';
+import { hash } from 'argon2';
+import { RegisterDto } from 'src/auth/dto/register.dto';
 import { DatabaseService } from 'src/database/database.service';
-import { FileService } from 'src/file/file.service';
-import { MailService } from 'src/mail/mail.service';
-import { ErrorsEnum } from 'src/types/errors.type';
-import { ChangePasswordDto } from './dto/changePassword.dto';
-import { AuthService } from 'src/auth/auth.service';
-import { FolderService } from 'src/folder/folder.service';
-import { UpdateNameDto } from './dto/updateName.dto';
-import { UpdateEmailDto } from './dto/updateEmail.dto';
-import { AuthDto } from '../auth/dto/auth.dto';
+import { StorageService } from 'src/storage/storage.service';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { UserNotFoundException } from './exceptions/UserNotFound.exception';
+import { UserResponse } from './responses/user.response';
 
 @Injectable()
 export class UserService {
   public constructor(
-    private readonly databaseService: DatabaseService,
-    private readonly mailService: MailService,
-    private readonly fileService: FileService,
-    private readonly authService: AuthService,
-    private readonly folderService: FolderService,
+    private readonly database: DatabaseService,
+    private readonly storageService: StorageService
   ) {}
 
-  public async getUser(user: AuthDto) {
-    const { id: userId } = user;
-    const { avatar, name, email, id, isActivated } =
-      await this.databaseService.user.findUnique({
-        where: {
-          id: userId,
-        },
-      });
-
-    return {
-      avatar,
-      name,
-      email,
-      id,
-      isActivated,
-    };
+  private generateActivationCode(): number {
+    return Math.floor(Math.random() * (9999 - 1000 + 1)) + 1000;
   }
 
-  public async sendActivationCode(user: AuthDto) {
-    const { id: userId } = user;
+  public async create(dto: RegisterDto): Promise<User> {
+    const hashedPassword = await hash(dto.password);
+    const activationCode = this.generateActivationCode();
 
-    const { activationCode, email } =
-      await this.databaseService.user.findUnique({
-        where: {
-          id: userId,
-        },
-        select: {
-          activationCode: true,
-          email: true,
-        },
-      });
-
-    try {
-      await this.mailService.sendActivationCode(email, activationCode);
-    } catch (e) {
-      throw new InternalServerErrorException(e.message);
-    }
-  }
-
-  public async changeName(
-    user: AuthDto,
-    updateNameDto: UpdateNameDto,
-  ): Promise<User> {
-    const { id } = user;
-    const { name } = updateNameDto;
-
-    return this.databaseService.user.update({
-      where: {
-        id,
-      },
+    return this.database.user.create({
       data: {
-        name,
-        editedAt: new Date(),
-      },
-    });
-  }
-
-  public async getStorage(user: AuthDto) {
-    const { id: userId } = user;
-    const storageFromDb = await this.databaseService.user.findUnique({
-      where: {
-        id: userId,
-      },
-      select: {
-        usedSpace: true,
-        freeSpace: true,
-        capacity: true,
-        files: {
-          select: {
-            type: true,
-            size: true,
-          },
-        },
-      },
-    });
-
-    const storage = Array.from(
-      new Set(storageFromDb.files.map((file) => file.type)),
-    ).map((type) => ({
-      type,
-      size: storageFromDb.files.reduce((acc, file) => {
-        if (file.type === type) {
-          return acc + file.size;
-        }
-
-        return acc;
-      }, 0),
-    }));
-
-    return {
-      category: storage,
-      space: {
-        used: storageFromDb.usedSpace,
-        free: storageFromDb.freeSpace,
-        total: storageFromDb.capacity,
-      },
-    };
-  }
-
-  public async changeEmail(
-    user: AuthDto,
-    updateEmailDto: UpdateEmailDto,
-  ): Promise<User> {
-    const { id } = user;
-    const { email } = updateEmailDto;
-    const activationCode = this.mailService.generateActivationCode();
-    const userFromDb = await this.databaseService.user.findUnique({
-      where: {
-        id,
-      },
-    });
-
-    if (userFromDb.email === email) {
-      throw new InternalServerErrorException('Email already exists');
-    }
-
-    const editedUser = await this.databaseService.user.update({
-      where: {
-        id,
-      },
-      data: {
-        email: email,
-        editedAt: new Date(),
-        isActivated: false,
+        email: dto.email,
+        password: hashedPassword,
+        name: dto.name,
         activationCode,
       },
     });
-
-    try {
-      await this.mailService.sendActivationCode(email, activationCode);
-    } catch (e) {
-      await this.databaseService.user.update({
-        where: {
-          id,
-        },
-        data: {
-          email: userFromDb.email,
-          editedAt: userFromDb.editedAt,
-          isActivated: true,
-          activationCode: userFromDb.activationCode,
-        },
-      });
-
-      throw new InternalServerErrorException(e.message);
-    }
-
-    return editedUser;
   }
 
-  public async changePassword(
-    user: AuthDto,
-    changePasswordDto: ChangePasswordDto,
-  ): Promise<User> {
-    const { id } = user;
-    const { newPassword, oldPassword } = changePasswordDto;
-    const oldUser = await this.databaseService.user.findUnique({
-      where: {
-        id,
-      },
+  // public async getStorage(userId: string) {
+  //   const storageFromDb = await this.database.user.findUnique({
+  //     where: {
+  //       id: userId,
+  //     },
+  //     select: {
+  //       usedSpace: true,
+  //       freeSpace: true,
+  //       capacity: true,
+  //       files: {
+  //         select: {
+  //           type: true,
+  //           size: true,
+  //         },
+  //       },
+  //     },
+  //   });
+
+  //   const typeSizeMap = new Map<string, number>();
+
+  //   for (const file of storageFromDb.files) {
+  //     typeSizeMap.set(file.type, (typeSizeMap.get(file.type) ?? 0) + file.size);
+  //   }
+
+  //   const storage = Array.from(typeSizeMap.entries()).map(([type, size]) => ({
+  //     type,
+  //     size,
+  //   }));
+
+  //   return {
+  //     category: storage,
+  //     space: {
+  //       used: storageFromDb.usedSpace,
+  //       free: storageFromDb.freeSpace,
+  //       total: storageFromDb.capacity,
+  //     },
+  //   };
+  // }
+
+  public async update(
+    id: string,
+    dto: UpdateUserDto,
+    avatarFile: Express.Multer.File
+  ): Promise<UserResponse> {
+    const user = await this.database.user.findUnique({
+      where: { id },
     });
 
-    if (!this.authService.compareHashPassword(oldPassword, oldUser.password)) {
-      throw new UnauthorizedException({
-        message: 'Wrong old password',
-        type: ErrorsEnum.WRONG_OLD_PASSWORD,
-      });
-    }
+    if (!user) throw new UserNotFoundException();
 
-    const hashedPassword = this.authService.generateHashPassword(
-      newPassword,
-      7,
-    );
-
-    return this.databaseService.user.update({
-      where: {
-        id,
-      },
-      data: {
-        password: hashedPassword,
-        editedAt: new Date(),
-      },
-    });
-  }
-
-  public async changeAvatar(
-    user: AuthDto,
-    avatar: Express.Multer.File,
-  ): Promise<User> {
-    const { id } = user;
-    const { avatar: oldAvatar } = await this.databaseService.user.findUnique({
-      where: {
-        id,
-      },
-      select: {
-        avatar: true,
-      },
-    });
-
-    const filename = await this.fileService.saveFileOnServer(
-      avatar,
-      `${user.id}.${avatar.originalname.split('.').pop()}`,
-      id,
-      {
+    if (avatarFile) {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error
+      dto.avatar = await this.storageService.saveFile(avatarFile, {
         isPublic: true,
-      },
-    );
-
-    if (oldAvatar !== 'no-avatar.svg') {
-      try {
-        this.fileService.deleteFileFromServer(oldAvatar, { isPublic: true });
-      } catch (e) {
-        console.error(e);
-      }
+      });
     }
 
-    return this.databaseService.user.update({
+    if (dto.password) {
+      dto.password = await hash(dto.password);
+    }
+
+    return this.database.user.update({
       where: {
         id,
       },
       data: {
-        avatar: filename,
-        editedAt: new Date(),
+        ...dto,
       },
+      select: { id: true, name: true, email: true, avatar: true },
     });
   }
 
-  public async delete(user: AuthDto) {
-    const { id } = user;
-
-    const userFromDb = await this.databaseService.user.findUnique({
-      where: {
-        id,
-      },
-      select: {
-        folders: {
-          select: {
-            id: true,
-          },
-        },
-        id: true,
+  public async delete(id: string): Promise<UserResponse> {
+    const user = await this.database.user.findUnique({
+      where: { id },
+      include: {
+        files: true,
       },
     });
 
-    await Promise.all(
-      userFromDb.folders.map((folder) =>
-        this.folderService.remove(user, folder.id),
-      ),
-    );
+    if (!user) throw new UserNotFoundException();
 
-    await this.databaseService.sharedFile.deleteMany({
-      where: {
-        userId: userFromDb.id,
-      },
-    });
+    await this.storageService.deletePublicFile(user.avatar);
 
-    return this.databaseService.user.delete({
-      where: {
-        id: userFromDb.id,
-      },
+    for (const file of user.files) {
+      await Promise.all([
+        this.database.file.delete({
+          where: { id: file.id },
+        }),
+        this.storageService.deleteUserFile(file.name),
+      ]);
+    }
+
+    return this.database.user.delete({
+      where: { id },
+      select: { id: true, name: true, email: true, avatar: true },
     });
   }
 }

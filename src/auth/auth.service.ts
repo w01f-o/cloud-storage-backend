@@ -1,181 +1,197 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  InternalServerErrorException,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { RegistrationDto } from './dto/registration.dto';
-import { LoginDto } from './dto/login.dto';
-import { DatabaseService } from '../database/database.service';
-import * as bcrypt from 'bcrypt';
-import { MailService } from '../mail/mail.service';
-import { TokenService } from '../token/token.service';
-import { UserDto } from './dto/user.dto';
-import { ActivateDto } from './dto/activate.dto';
+import { DatabaseService } from '@/database/database.service';
+import { MailerService } from '@/mailer/mailer.service';
+import { UserNotFoundException } from '@/user/exceptions/UserNotFound.exception';
+import { UserService } from '@/user/user.service';
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
-import { ErrorsEnum } from '../types/errors.type';
-import { AuthResponse } from 'src/types/authResponse';
+import { verify } from 'argon2';
+import { CookieOptions, Response } from 'express';
+import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
+import { InvalidActivationCodeException } from './exceptions/InvalidActivationCode.exception';
+import { InvalidCredentialsException } from './exceptions/InvalidCredentials.exception';
+import { InvalidRefreshTokenException } from './exceptions/InvalidRefreshToken.exception';
+import { UserAlreadyExistsException } from './exceptions/UserAlreadyExists.exception';
+import { RawAuthData } from './types/raw-auth.type';
+import { JwtPayload, JwtTokens } from './types/tokens.type';
 
 @Injectable()
 export class AuthService {
-  public constructor(
-    private readonly databaseService: DatabaseService,
-    private readonly mailService: MailService,
-    private readonly tokenService: TokenService,
+  private readonly EXPIRE_MINUTES_ACCESS_TOKEN = '30m';
+  private readonly EXPIRE_DAY_REFRESH_TOKEN = '30d';
+
+  private readonly _REFRESH_TOKEN_NAME = 'refreshToken';
+  private readonly _ACCESS_TOKEN_NAME = 'accessToken';
+
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+    private readonly database: DatabaseService,
+    private readonly mailerService: MailerService,
+    private readonly userService: UserService
   ) {}
 
-  public generateHashPassword(password: string, salt: number): string {
-    return bcrypt.hashSync(password, salt);
+  get ACCESS_TOKEN_NAME(): string {
+    return this._ACCESS_TOKEN_NAME;
   }
 
-  public compareHashPassword(password: string, hash: string): boolean {
-    return bcrypt.compareSync(password, hash);
+  get REFRESH_TOKEN_NAME(): string {
+    return this._REFRESH_TOKEN_NAME;
   }
 
-  private async generateAndSaveToken(user: User): Promise<AuthResponse> {
-    const { id, email, isActivated, name, avatar } = user;
-    const userDto = new UserDto(id, email, name, avatar, isActivated);
-
-    const tokens = await this.tokenService.generateTokens({ ...userDto });
-    await this.tokenService.saveToken(userDto.id, tokens.refreshToken);
-
-    return {
-      user: userDto,
-      tokens: {
-        access: tokens.accessToken,
-        refresh: tokens.refreshToken,
-      },
-    };
-  }
-
-  public async registration(registrationDto: RegistrationDto) {
-    const { email, password, name } = registrationDto;
-
-    const candidate = await this.databaseService.user.findUnique({
-      where: { email },
-    });
-
-    if (candidate) {
-      throw new ConflictException({
-        message: 'User with such email already exists',
-        type: ErrorsEnum.USER_WITH_SUCH_EMAIL_ALREADY_EXISTS,
-      });
-    }
-
-    const hashPassword = this.generateHashPassword(password, 7);
-    const activationCode = this.mailService.generateActivationCode();
-
-    const user = await this.databaseService.user.create({
-      data: {
-        password: hashPassword,
-        email,
-        name,
-        activationCode,
-      },
-    });
-
-    const response = await this.generateAndSaveToken(user);
-
-    try {
-      await this.mailService.sendActivationCode(email, activationCode);
-    } catch (e) {
-      await this.databaseService.user.delete({ where: { id: user.id } });
-      await this.tokenService.removeToken(response.tokens.refresh);
-
-      throw new InternalServerErrorException({
-        message: e.message,
-        type: ErrorsEnum.MAILER_ERROR,
-      });
-    }
-
-    return response;
-  }
-
-  public async login(loginDto: LoginDto) {
-    const { email, password } = loginDto;
-
-    const user = await this.databaseService.user.findUnique({
-      where: { email },
+  private async validateUser(dto: RegisterDto | LoginDto): Promise<User> {
+    const user = await this.database.user.findUnique({
+      where: { email: dto.email },
     });
 
     if (!user) {
-      throw new UnauthorizedException({
-        message: 'Wrong email or password',
-        type: ErrorsEnum.WRONG_EMAIL_OR_PASSWORD,
-      });
+      throw new InvalidCredentialsException();
     }
 
-    const isPassEquals = this.compareHashPassword(password, user.password);
+    const isValid = await verify(user.password, dto.password);
 
-    if (!isPassEquals) {
-      throw new UnauthorizedException({
-        message: 'Wrong email or password',
-        type: ErrorsEnum.WRONG_EMAIL_OR_PASSWORD,
-      });
-    }
+    if (!isValid) throw new InvalidCredentialsException();
 
-    return await this.generateAndSaveToken(user);
+    return user;
   }
 
-  public async logout(refreshToken: string) {
-    return await this.tokenService.removeToken(refreshToken);
+  private generateTokens(payload: JwtPayload): JwtTokens {
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: this.EXPIRE_MINUTES_ACCESS_TOKEN,
+    });
+    const refreshToken = this.jwtService.sign(payload, {
+      expiresIn: this.EXPIRE_DAY_REFRESH_TOKEN,
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+    };
   }
 
-  public async activate(user, activateDto: ActivateDto): Promise<void> {
-    const { code } = activateDto;
-    const { id: userId } = user;
+  public async activate(userId: string, code: number): Promise<void> {
+    const user = await this.database.user.findUnique({
+      where: { id: userId },
+    });
 
-    const userFromDb = await this.databaseService.user.findUnique({
+    if (!user) throw new UserNotFoundException();
+
+    if (user.activationCode !== code)
+      throw new InvalidActivationCodeException();
+
+    await this.database.user.update({
       where: {
         id: userId,
       },
-    });
-
-    if (!userFromDb) {
-      throw new UnauthorizedException({
-        message: 'User with such email not found',
-        type: ErrorsEnum.USER_WITH_SUCH_EMAIL_NOT_FOUND,
-      });
-    }
-
-    if (userFromDb.activationCode !== code) {
-      throw new UnauthorizedException({
-        message: 'Wrong activation code',
-        type: ErrorsEnum.WRONG_ACTIVATION_CODE,
-      });
-    }
-
-    await this.databaseService.user.update({
-      where: {
-        id: userId,
+      data: {
+        isActivated: true,
       },
-      data: { isActivated: true },
     });
   }
 
-  public async refresh(refreshToken: string) {
-    if (!refreshToken) {
-      throw new BadRequestException({
-        message: 'No refresh token',
-        type: ErrorsEnum.NO_REFRESH_TOKEN,
-      });
-    }
+  public async login(dto: LoginDto): Promise<RawAuthData> {
+    const user = await this.validateUser(dto);
 
-    const userData = await this.tokenService.validateRefreshToken(refreshToken);
-    const tokenFromDb = await this.tokenService.findToken(refreshToken);
-
-    if (!userData || !tokenFromDb) {
-      throw new UnauthorizedException({
-        message: 'Wrong refresh token',
-        type: ErrorsEnum.WRONG_REFRESH_TOKEN,
-      });
-    }
-
-    const user = await this.databaseService.user.findUnique({
-      where: { id: userData.id },
+    const tokens = this.generateTokens({
+      id: user.id,
     });
 
-    return await this.generateAndSaveToken(user);
+    return {
+      user,
+      ...tokens,
+    };
+  }
+
+  public async register(dto: RegisterDto): Promise<RawAuthData> {
+    const userFromDb = await this.database.user.findUnique({
+      where: {
+        email: dto.email,
+      },
+    });
+
+    if (userFromDb) throw new UserAlreadyExistsException();
+
+    const user = await this.userService.create(dto);
+    const tokens = this.generateTokens({
+      id: user.id,
+    });
+
+    this.mailerService.sendActivationCode(user.email, user.activationCode);
+
+    return {
+      user,
+      ...tokens,
+    };
+  }
+
+  public async refresh(refreshToken: string): Promise<RawAuthData> {
+    let decodedTokenPayload: JwtPayload;
+
+    try {
+      decodedTokenPayload =
+        await this.jwtService.verifyAsync<JwtPayload>(refreshToken);
+    } catch {
+      throw new InvalidRefreshTokenException();
+    }
+
+    const user = await this.database.user.findUnique({
+      where: { id: decodedTokenPayload.id },
+    });
+
+    const tokens = this.generateTokens({
+      id: user.id,
+    });
+
+    return {
+      user,
+      ...tokens,
+    };
+  }
+
+  public async logout(res: Response): Promise<void> {
+    this.removeTokensFromCookie(res);
+  }
+
+  public addTokensToCookie(res: Response, tokens: JwtTokens): void {
+    const refreshExpiresIn = new Date();
+    refreshExpiresIn.setDate(
+      refreshExpiresIn.getDate() + parseInt(this.EXPIRE_DAY_REFRESH_TOKEN)
+    );
+
+    const accessTokenExpiresIn = new Date();
+    accessTokenExpiresIn.setMinutes(
+      accessTokenExpiresIn.getMinutes() +
+        parseInt(this.EXPIRE_MINUTES_ACCESS_TOKEN)
+    );
+
+    const options: CookieOptions = {
+      httpOnly: true,
+      domain: this.configService.get('SERVER_DOMAIN'),
+      sameSite: 'lax',
+      secure: this.configService.get('NODE_ENV') === 'production',
+    };
+
+    res.cookie(this.REFRESH_TOKEN_NAME, tokens.refreshToken, {
+      ...options,
+      expires: refreshExpiresIn,
+    });
+    res.cookie(this.ACCESS_TOKEN_NAME, tokens.accessToken, {
+      ...options,
+      expires: accessTokenExpiresIn,
+    });
+  }
+
+  public removeTokensFromCookie(res: Response): void {
+    const options: CookieOptions = {
+      httpOnly: true,
+      domain: this.configService.get('SERVER_DOMAIN'),
+      sameSite: 'lax',
+      secure: this.configService.get('NODE_ENV') === 'production',
+    };
+
+    res.clearCookie(this.REFRESH_TOKEN_NAME, options);
+    res.clearCookie(this.ACCESS_TOKEN_NAME, options);
   }
 }

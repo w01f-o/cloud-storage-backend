@@ -1,9 +1,11 @@
-import { IsNotEmpty } from 'class-validator';
+import { IsHexColor, IsString, MaxLength } from 'class-validator';
+import { MAX_FOLDER_NAME_LENGTH } from 'src/_shared/constants/validation-constants';
 
 export class CreateFolderDto {
-  @IsNotEmpty()
+  @IsString()
+  @MaxLength(MAX_FOLDER_NAME_LENGTH)
   name: string;
 
-  @IsNotEmpty()
+  @IsHexColor()
   color: string;
 }

@@ -1,19 +1,27 @@
 import { Module } from '@nestjs/common';
-import { AuthService } from './auth.service';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
+import { getAuthConfig } from 'src/config/auth.config';
+import { DatabaseModule } from 'src/database/database.module';
+import { MailerModule } from 'src/mailer/mailer.module';
+import { UserModule } from 'src/user/user.module';
 import { AuthController } from './auth.controller';
-import { DatabaseService } from '../database/database.service';
-import { MailService } from '../mail/mail.service';
-import { TokenService } from '../token/token.service';
-import { JwtService } from '@nestjs/jwt';
+import { AuthService } from './auth.service';
+import { AuthStrategy } from './auth.strategy';
 
 @Module({
-  controllers: [AuthController],
-  providers: [
-    AuthService,
-    DatabaseService,
-    MailService,
-    TokenService,
-    JwtService,
+  imports: [
+    ConfigModule,
+    DatabaseModule,
+    UserModule,
+    MailerModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: getAuthConfig,
+    }),
   ],
+  controllers: [AuthController],
+  providers: [AuthService, AuthStrategy],
 })
 export class AuthModule {}

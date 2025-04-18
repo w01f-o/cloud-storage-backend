@@ -1,96 +1,90 @@
-import { Body, Controller, Post, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Param,
+  Patch,
+  Post,
+  Req,
+  Res,
+  UseInterceptors,
+} from '@nestjs/common';
+import { NoFilesInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
-import { CustomRequest } from 'src/types/request.type';
-import { AuthGuard } from './auth.guard';
 import { AuthService } from './auth.service';
 import { ActivateDto } from './dto/activate.dto';
 import { LoginDto } from './dto/login.dto';
-import { RegistrationDto } from './dto/registration.dto';
+import { RegisterDto } from './dto/register.dto';
+import { InvalidRefreshTokenException } from './exceptions/InvalidRefreshToken.exception';
+import { AuthResponse } from './responses/auth.response';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  private setRefreshToken(res: Response, token: string) {
-    res.cookie('refreshToken', token, {
-      maxAge: +process.env.JWT_COOKIE_MAX_AGE,
-      httpOnly: true,
-    });
-  }
-
-  private clearRefreshToken(res: Response) {
-    res.clearCookie('refreshToken', {});
-  }
-
-  @Post('registration')
-  public async registration(
-    @Res({ passthrough: true }) res: Response,
-    @Body() registrationDto: RegistrationDto,
-  ) {
-    const userData = await this.authService.registration(registrationDto);
-    this.setRefreshToken(res, userData.tokens.refresh);
-
-    return userData;
-  }
-
+  @UseInterceptors(NoFilesInterceptor())
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
-  public async login(
-    @Res({ passthrough: true }) res: Response,
-    @Body() loginDto: LoginDto,
-  ) {
-    const userData = await this.authService.login(loginDto);
-    this.setRefreshToken(res, userData.tokens.refresh);
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) res: Response
+  ): Promise<AuthResponse> {
+    const { user, refreshToken, accessToken } =
+      await this.authService.login(dto);
 
-    return userData;
+    this.authService.addTokensToCookie(res, { accessToken, refreshToken });
+
+    return new AuthResponse({ user, accessToken });
   }
 
-  @Post('logout')
-  public async logout(
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-    @Body() { token }: { token: string },
-  ) {
-    let { refreshToken } = req.cookies;
-    if (!refreshToken) {
-      refreshToken = token;
-    }
+  @Post('register')
+  async register(
+    @Body() dto: RegisterDto,
+    @Res({ passthrough: true }) res: Response
+  ): Promise<AuthResponse> {
+    const { user, refreshToken, accessToken } =
+      await this.authService.register(dto);
 
-    const deletedToken = await this.authService.logout(refreshToken);
-    this.clearRefreshToken(res);
+    this.authService.addTokensToCookie(res, { accessToken, refreshToken });
 
-    return { token: deletedToken };
-  }
-
-  @UseGuards(AuthGuard)
-  @Post('activate')
-  public async activate(
-    @Req() req: CustomRequest,
-    @Body() activateDto: ActivateDto,
-  ) {
-    const { user } = req;
-
-    await this.authService.activate(user, activateDto);
-
-    return {
-      message: 'Account activated',
-    };
+    return new AuthResponse({ user, accessToken });
   }
 
   @Post('refresh')
-  public async refresh(
+  async refresh(
     @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-    @Body() { token }: { token: string },
-  ) {
-    let { refreshToken } = req.cookies;
-    if (!refreshToken) {
-      refreshToken = token;
+    @Res({ passthrough: true }) res: Response
+  ): Promise<AuthResponse> {
+    const refreshTokenFromCookie: string | null =
+      req.cookies[this.authService.REFRESH_TOKEN_NAME];
+
+    if (!refreshTokenFromCookie) {
+      throw new InvalidRefreshTokenException();
     }
 
-    const userData = await this.authService.refresh(refreshToken);
+    const { user, refreshToken, accessToken } = await this.authService.refresh(
+      refreshTokenFromCookie
+    );
 
-    this.setRefreshToken(res, userData.tokens.refresh);
+    this.authService.addTokensToCookie(res, { accessToken, refreshToken });
 
-    return userData;
+    return new AuthResponse({ user: user, accessToken: accessToken });
+  }
+
+  @Patch('/activate/:userId')
+  async activate(
+    @Param('userId') userId: string,
+    @Body() { code }: ActivateDto
+  ): Promise<boolean> {
+    await this.authService.activate(userId, code);
+
+    return true;
+  }
+
+  @Post('logout')
+  async logout(@Res({ passthrough: true }) res: Response): Promise<boolean> {
+    await this.authService.logout(res);
+
+    return true;
   }
 }

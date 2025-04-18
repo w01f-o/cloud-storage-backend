@@ -1,51 +1,47 @@
-import { MailerModule } from '@nestjs-modules/mailer';
-import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { MailerModule as NestMailerModule } from '@nestjs-modules/mailer';
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
-import * as process from 'node:process';
-import { join } from 'path';
 import { AuthModule } from './auth/auth.module';
+import { getMailerConfig } from './config/mailer.config';
+import { configSchema } from './config/schema.config';
 import { DatabaseModule } from './database/database.module';
-import { FileAccessMiddleware } from './file/file.middleware';
 import { FileModule } from './file/file.module';
 import { FolderModule } from './folder/folder.module';
-import { MailModule } from './mail/mail.module';
-import { Shared_fileModule } from './shared_file/shared_file.module';
-import { TokenModule } from './token/token.module';
+import { MailerModule } from './mailer/mailer.module';
+import { PaymentModule } from './payment/payment.module';
+import { SharedFileModule } from './shared-file/shared-file.module';
+import { StorageModule } from './storage/storage.module';
+import { StorageService } from './storage/storage.service';
 import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      validationSchema: configSchema,
+      validationOptions: { abortEarly: true },
+    }),
+    NestMailerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: getMailerConfig,
+    }),
+    ServeStaticModule.forRootAsync({
+      imports: [StorageModule],
+      inject: [StorageService],
+      useFactory: (storageService: StorageService) => [
+        { rootPath: storageService.getPublicFilePath() },
+      ],
+    }),
     DatabaseModule,
     UserModule,
     FolderModule,
     FileModule,
-    Shared_fileModule,
+    SharedFileModule,
     AuthModule,
-    ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'static', 'public'),
-    }),
-    MailModule,
-    TokenModule,
-    MailerModule.forRoot({
-      transport: `smtps://${process.env.SMTP_USER}:${process.env.SMTP_PASSWORD}@${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`,
-      defaults: {
-        from: `"Cloud storage" <${process.env.SMTP_USER}>`,
-      },
-      template: {
-        dir: join(__dirname, '..', 'templates'),
-        adapter: new HandlebarsAdapter(),
-        options: {
-          strict: true,
-        },
-      },
-    }),
+    MailerModule,
+    StorageModule,
+    PaymentModule,
   ],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(FileAccessMiddleware).forRoutes('*');
-  }
-}
+export class AppModule {}
