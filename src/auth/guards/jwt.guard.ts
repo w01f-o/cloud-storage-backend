@@ -21,7 +21,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       throw new InvalidAccessTokenException();
     }
 
-    if (typeof user?.isActivated === 'boolean' && !user.isActivated) {
+    if (typeof user?.isConfirmed === 'boolean' && !user.isConfirmed) {
       throw new NotConfirmedAccountException();
     }
 

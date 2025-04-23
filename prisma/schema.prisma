@@ -15,15 +15,12 @@ model User {
   password String
   avatar   String?
 
-  isActivated    Boolean @default(false) @map("is_activated")
+  isConfirmed    Boolean @default(false) @map("is_confirmed")
   activationCode Int     @map("activation_code")
 
   folders     Folder[]
   files       File[]
   sharedFiles SharedFile[]
-
-  // rootFolder   Folder @relation("user_root_folder", fields: [rootFolderId], references: [id], onDelete: Cascade)
-  // rootFolderId String @unique @map("root_folder_id")
 
   capacity  BigInt @default(5368709120)
   usedSpace BigInt @default(0) @map("used_space")
@@ -37,8 +34,6 @@ model User {
 
 model Folder {
   id String @id @default(uuid())
-
-  // rootOfUser User? @relation("user_root_folder")
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @map("user_id")

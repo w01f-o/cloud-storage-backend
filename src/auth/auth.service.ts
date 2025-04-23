@@ -87,7 +87,7 @@ export class AuthService {
         id: userId,
       },
       data: {
-        isActivated: true,
+        isConfirmed: true,
       },
     });
   }
