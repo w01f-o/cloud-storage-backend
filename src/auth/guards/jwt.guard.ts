@@ -4,7 +4,6 @@ import { AuthGuard } from '@nestjs/passport';
 import { User } from '@prisma/client';
 import { InvalidAccessTokenException } from '../exceptions/InvalidAccessToken.exception';
 import { NoAccessTokenException } from '../exceptions/NoAccessToken.exception';
-import { NotConfirmedAccountException } from '../exceptions/NotConfirmedAccount.exception';
 
 export class JwtAuthGuard extends AuthGuard('jwt') {
   handleRequest<TUser = User>(
@@ -22,9 +21,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       throw new InvalidAccessTokenException();
     }
 
-    if (typeof user?.isConfirmed === 'boolean' && !user.isConfirmed) {
-      throw new NotConfirmedAccountException();
-    }
+    // if (typeof user?.isConfirmed === 'boolean' && !user.isConfirmed) {
+    //   throw new NotConfirmedAccountException();
+    // }
 
     return super.handleRequest(err, user, info, context, status);
   }
