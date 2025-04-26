@@ -41,11 +41,12 @@ export class AuthController {
 
   @Post('refresh')
   async refresh(
+    @Body() body: { refreshToken: string },
     @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply
   ): Promise<AuthResponse> {
     const refreshTokenFromCookie: string | null =
-      request.cookies[this.authService.REFRESH_TOKEN_NAME];
+      request.cookies[this.authService.REFRESH_TOKEN_NAME] ?? body.refreshToken;
 
     if (!refreshTokenFromCookie) {
       throw new InvalidRefreshTokenException();

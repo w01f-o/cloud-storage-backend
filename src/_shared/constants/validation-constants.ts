@@ -9,10 +9,10 @@ export const MIN_PASSWORD_LENGTH = 8;
 export const MAX_PASSWORD_LENGTH = 64;
 export const STRONG_PASSWORD_OPTIONS: IsStrongPasswordOptions = {
   minLength: MIN_PASSWORD_LENGTH,
-  minLowercase: 1,
-  minUppercase: 1,
-  minNumbers: 1,
-  minSymbols: 1,
+  minLowercase: 0,
+  minUppercase: 0,
+  minNumbers: 0,
+  minSymbols: 0,
 };
 
 export const MIN_EMAIL_LENGTH = 1;

@@ -3,6 +3,7 @@ import { JsonWebTokenError } from '@nestjs/jwt';
 import { AuthGuard } from '@nestjs/passport';
 import { User } from '@prisma/client';
 import { InvalidAccessTokenException } from '../exceptions/InvalidAccessToken.exception';
+import { NoAccessTokenException } from '../exceptions/NoAccessToken.exception';
 import { NotConfirmedAccountException } from '../exceptions/NotConfirmedAccount.exception';
 
 export class JwtAuthGuard extends AuthGuard('jwt') {
@@ -14,7 +15,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     status?: HttpStatus
   ): TUser {
     if (info instanceof Error && info.message === 'No auth token') {
-      throw new InvalidAccessTokenException();
+      throw new NoAccessTokenException();
     }
 
     if (info instanceof JsonWebTokenError) {

@@ -165,6 +165,7 @@ export class AuthService {
     accessTokenExpiresIn.setFullYear(accessTokenExpiresIn.getFullYear() + 10);
 
     const options: CookieSerializeOptions = {
+      path: '/',
       httpOnly: true,
       domain: this.configService.get('SERVER_DOMAIN'),
       sameSite: 'lax',
@@ -184,6 +185,7 @@ export class AuthService {
 
   public removeTokensFromCookie(reply: FastifyReply): void {
     const options: CookieSerializeOptions = {
+      path: '/',
       httpOnly: true,
       domain: this.configService.get('SERVER_DOMAIN'),
       sameSite: 'lax',
