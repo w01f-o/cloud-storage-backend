@@ -22,7 +22,22 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     }
 
     // if (typeof user?.isConfirmed === 'boolean' && !user.isConfirmed) {
-    //   throw new NotConfirmedAccountException();
+    //   const { method, url } = context
+    //     .switchToHttp()
+    //     .getRequest<FastifyRequest>();
+
+    //   const allowedForUnconfirmed: [string, string][] = [
+    //     ['PATCH', '/api/v1/auth/activate'],
+    //     ['GET', '/api/v1/user'],
+    //   ];
+
+    //   const isAllowed = allowedForUnconfirmed.some(
+    //     ([m, path]) => method === m && url.startsWith(path)
+    //   );
+
+    //   if (!isAllowed) {
+    //     throw new NotConfirmedAccountException();
+    //   }
     // }
 
     return super.handleRequest(err, user, info, context, status);

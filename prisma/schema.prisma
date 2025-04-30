@@ -44,9 +44,9 @@ model Folder {
 
   files File[]
 
-  parent   Folder?  @relation("folder_to_folder", fields: [parentId], references: [id], onDelete: Cascade)
-  parentId String?  @map("parent_id")
-  children Folder[] @relation("folder_to_folder")
+  // parent   Folder?  @relation("folder_to_folder", fields: [parentId], references: [id], onDelete: Cascade)
+  // parentId String?  @map("parent_id")
+  // children Folder[] @relation("folder_to_folder")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

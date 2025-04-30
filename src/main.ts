@@ -1,5 +1,6 @@
 import fastifyCookie from '@fastify/cookie';
 import fastifyMultipart from '@fastify/multipart';
+import fastifyStatic from '@fastify/static';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
@@ -9,6 +10,7 @@ import {
 } from '@nestjs/platform-fastify';
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { StorageService } from './storage/storage.service';
 
 declare global {
   interface BigInt {
@@ -27,6 +29,8 @@ async function bootstrap(): Promise<void> {
   );
 
   const configService = app.get(ConfigService);
+  const storageService = app.get(StorageService);
+
   const swaggerConfig = new DocumentBuilder()
     .setTitle(configService.get('APP_NAME'))
     .setDescription(`${configService.get('APP_NAME')} API documentation`)
@@ -38,15 +42,22 @@ async function bootstrap(): Promise<void> {
 
   app.register(fastifyCookie);
   app.register(fastifyMultipart);
+  app.register(fastifyStatic, {
+    root: storageService.getPublicFilePath(),
+  });
+
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
     })
   );
   app.enableCors({
     credentials: true,
     origin: configService.get('CLIENT_URL'),
     exposedHeaders: ['set-cookie'],
+    methods: ['GET', 'POST', 'DELETE', 'PATCH'],
   });
   app.setGlobalPrefix('/api/v1');
 

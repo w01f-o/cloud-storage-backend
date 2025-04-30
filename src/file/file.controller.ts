@@ -21,6 +21,7 @@ import { FastifyReply } from 'fastify';
 import { createReadStream } from 'fs';
 import { FileAreRequiredException } from './exceptions/FileAreRequired.exception';
 import { FileService } from './file.service';
+import { ValidateFilePipe } from './pipes/validate-file.pipe';
 import { FindAllFilesQuery } from './queries/find-all.query';
 import { FileResponse } from './responses/file.response';
 
@@ -80,7 +81,7 @@ export class FileController {
   async upload(
     @CurrentUser() user: User,
     @Param('folderId') folderId: string,
-    @UploadedFile() file: File
+    @UploadedFile(ValidateFilePipe) file: File
   ): Promise<FileResponse> {
     if (!file) throw new FileAreRequiredException();
 

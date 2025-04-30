@@ -33,43 +33,40 @@ export class FolderService {
             contains: query.search,
             mode: Prisma.QueryMode.insensitive,
           },
-          parentId: null,
         },
         orderBy: {
           [query.sortBy ?? 'createdAt']: query.sortOrder ?? 'desc',
         },
-        include: { children: true },
         omit: { userId: true },
       },
       { page: query.page, perPage: query.perPage }
     );
   }
 
-  public async findAllByParent(
-    userId: string,
-    parentId: string,
-    query: FindAllFoldersQuery
-  ): Promise<PaginatedResult<FolderResponse>> {
-    return defaultPaginator<FolderResponse, Prisma.FolderFindManyArgs>(
-      this.database.folder,
-      {
-        where: {
-          userId,
-          parentId,
-          name: {
-            contains: query.search,
-            mode: Prisma.QueryMode.insensitive,
-          },
-        },
-        orderBy: {
-          [query.sortBy ?? 'createdAt']: query.sortOrder ?? 'desc',
-        },
-        include: { children: true },
-        omit: { userId: true },
-      },
-      { page: query.page, perPage: query.perPage }
-    );
-  }
+  // public async findAllByParent(
+  //   userId: string,
+  //   parentId: string,
+  //   query: FindAllFoldersQuery
+  // ): Promise<PaginatedResult<FolderResponse>> {
+  //   return defaultPaginator<FolderResponse, Prisma.FolderFindManyArgs>(
+  //     this.database.folder,
+  //     {
+  //       where: {
+  //         userId,
+  //         parentId,
+  //         name: {
+  //           contains: query.search,
+  //           mode: Prisma.QueryMode.insensitive,
+  //         },
+  //       },
+  //       orderBy: {
+  //         [query.sortBy ?? 'createdAt']: query.sortOrder ?? 'desc',
+  //       },
+  //       omit: { userId: true },
+  //     },
+  //     { page: query.page, perPage: query.perPage }
+  //   );
+  // }
 
   public async findOneById(
     userId: string,
@@ -80,7 +77,6 @@ export class FolderService {
         id: folderId,
         userId,
       },
-      include: { children: true },
       omit: { userId: true },
     });
 
@@ -102,36 +98,35 @@ export class FolderService {
           },
         },
       },
-      include: { children: true },
       omit: { userId: true },
     });
   }
 
-  public async createByParent(
-    userId: string,
-    parentId: string,
-    dto: CreateFolderDto
-  ): Promise<FolderResponse> {
-    await this.findOneById(userId, parentId);
+  // public async createByParent(
+  //   userId: string,
+  //   parentId: string,
+  //   dto: CreateFolderDto
+  // ): Promise<FolderResponse> {
+  //   await this.findOneById(userId, parentId);
 
-    return this.database.folder.create({
-      data: {
-        ...dto,
-        user: {
-          connect: {
-            id: userId,
-          },
-        },
-        parent: {
-          connect: {
-            id: parentId,
-          },
-        },
-      },
-      include: { children: true },
-      omit: { userId: true },
-    });
-  }
+  //   return this.database.folder.create({
+  //     data: {
+  //       ...dto,
+  //       user: {
+  //         connect: {
+  //           id: userId,
+  //         },
+  //       },
+  //       parent: {
+  //         connect: {
+  //           id: parentId,
+  //         },
+  //       },
+  //     },
+  //     include: { children: true },
+  //     omit: { userId: true },
+  //   });
+  // }
 
   public async update(
     userId: string,
@@ -148,7 +143,6 @@ export class FolderService {
       data: {
         ...dto,
       },
-      include: { children: true },
       omit: { userId: true },
     });
   }
@@ -176,7 +170,6 @@ export class FolderService {
         id: folderId,
         userId,
       },
-      include: { children: true },
       omit: { userId: true },
     });
   }

@@ -30,14 +30,14 @@ export class FolderController {
     return this.folderService.findAll(userId, query);
   }
 
-  @Get('parent/:parentId')
-  async findAllByParent(
-    @CurrentUser('id') userId: string,
-    @Param('parentId') parentId: string,
-    @Query() query: FindAllFoldersQuery
-  ): Promise<PaginatedResult<FolderResponse>> {
-    return this.folderService.findAllByParent(userId, parentId, query);
-  }
+  // @Get('parent/:parentId')
+  // async findAllByParent(
+  //   @CurrentUser('id') userId: string,
+  //   @Param('parentId') parentId: string,
+  //   @Query() query: FindAllFoldersQuery
+  // ): Promise<PaginatedResult<FolderResponse>> {
+  //   return this.folderService.findAllByParent(userId, parentId, query);
+  // }
 
   @Get(':id')
   async findOneById(
@@ -55,14 +55,14 @@ export class FolderController {
     return this.folderService.create(userId, dto);
   }
 
-  @Post('parent/:parentId')
-  async createByParent(
-    @CurrentUser('id') userId: string,
-    @Param('parentId') parentId: string,
-    @Body() dto: CreateFolderDto
-  ): Promise<FolderResponse> {
-    return this.folderService.createByParent(userId, parentId, dto);
-  }
+  // @Post('parent/:parentId')
+  // async createByParent(
+  //   @CurrentUser('id') userId: string,
+  //   @Param('parentId') parentId: string,
+  //   @Body() dto: CreateFolderDto
+  // ): Promise<FolderResponse> {
+  //   return this.folderService.createByParent(userId, parentId, dto);
+  // }
 
   @Patch(':id')
   async update(

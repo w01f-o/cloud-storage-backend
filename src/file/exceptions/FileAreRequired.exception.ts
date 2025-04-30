@@ -6,9 +6,9 @@ export class FileAreRequiredException extends HttpException {
     super(
       {
         message: FileErrors.ARE_REQUIRED,
-        statusCode: HttpStatus.BAD_REQUEST,
+        statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
       },
-      HttpStatus.BAD_REQUEST
+      HttpStatus.UNPROCESSABLE_ENTITY
     );
   }
 }

@@ -31,8 +31,8 @@ export class UserController {
   async update(
     @CurrentUser('id') id: string,
     @Body() dto: UpdateUserDto,
-    @UploadedFile(ValidateAvatarFilePipe())
-    avatarFile: File
+    @UploadedFile(ValidateAvatarFilePipe)
+    avatarFile?: File
   ): Promise<UserResponse> {
     return this.userService.update(id, dto, avatarFile);
   }

@@ -1,7 +1,9 @@
-import { Body, Controller, Param, Patch, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Patch, Post, Req, Res } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { AuthService } from './auth.service';
+import { CurrentUser } from './decorators/current-user.decorator';
+import { UseAuth } from './decorators/use-auth.decorator';
 import { ActivateDto } from './dto/activate.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -61,12 +63,13 @@ export class AuthController {
     return new AuthResponse({ user: user, accessToken: accessToken });
   }
 
-  @Patch('/activate/:userId')
+  @UseAuth()
+  @Patch('/activate')
   async activate(
-    @Param('userId') userId: string,
+    @CurrentUser('id') id: string,
     @Body() { code }: ActivateDto
   ): Promise<boolean> {
-    await this.authService.activate(userId, code);
+    await this.authService.activate(id, code);
 
     return true;
   }

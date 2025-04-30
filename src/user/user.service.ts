@@ -103,7 +103,13 @@ export class UserService {
       data: {
         ...dto,
       },
-      select: { id: true, name: true, email: true, avatar: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatar: true,
+        isConfirmed: true,
+      },
     });
   }
 
@@ -130,7 +136,13 @@ export class UserService {
 
     return this.database.user.delete({
       where: { id },
-      select: { id: true, name: true, email: true, avatar: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatar: true,
+        isConfirmed: true,
+      },
     });
   }
 }
