@@ -1,4 +1,3 @@
-import { User } from '@prisma/client';
 import {
   IsEmail,
   IsOptional,
@@ -16,7 +15,7 @@ import {
   STRONG_PASSWORD_OPTIONS,
 } from 'src/_shared/constants/validation-constants';
 
-export class UpdateUserDto implements Partial<User> {
+export class UpdateUserDto {
   @IsOptional()
   @IsEmail()
   @Length(MIN_EMAIL_LENGTH, MAX_EMAIL_LENGTH)
@@ -31,4 +30,7 @@ export class UpdateUserDto implements Partial<User> {
   @IsStrongPassword(STRONG_PASSWORD_OPTIONS)
   @MaxLength(MAX_PASSWORD_LENGTH)
   password: string;
+
+  @IsOptional()
+  avatar: string;
 }

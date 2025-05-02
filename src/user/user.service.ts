@@ -34,45 +34,6 @@ export class UserService {
     });
   }
 
-  // public async getStorage(userId: string) {
-  //   const storageFromDb = await this.database.user.findUnique({
-  //     where: {
-  //       id: userId,
-  //     },
-  //     select: {
-  //       usedSpace: true,
-  //       freeSpace: true,
-  //       capacity: true,
-  //       files: {
-  //         select: {
-  //           type: true,
-  //           size: true,
-  //         },
-  //       },
-  //     },
-  //   });
-
-  //   const typeSizeMap = new Map<string, number>();
-
-  //   for (const file of storageFromDb.files) {
-  //     typeSizeMap.set(file.type, (typeSizeMap.get(file.type) ?? 0) + file.size);
-  //   }
-
-  //   const storage = Array.from(typeSizeMap.entries()).map(([type, size]) => ({
-  //     type,
-  //     size,
-  //   }));
-
-  //   return {
-  //     category: storage,
-  //     space: {
-  //       used: storageFromDb.usedSpace,
-  //       free: storageFromDb.freeSpace,
-  //       total: storageFromDb.capacity,
-  //     },
-  //   };
-  // }
-
   public async update(
     id: string,
     dto: UpdateUserDto,
@@ -85,8 +46,6 @@ export class UserService {
     if (!user) throw new UserNotFoundException();
 
     if (avatarFile) {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-expect-error
       dto.avatar = await this.storageService.saveFile(avatarFile, {
         isPublic: true,
       });
