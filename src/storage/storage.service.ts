@@ -80,24 +80,26 @@ export class StorageService {
 
     const typeMap = new Map<
       string,
-      Pick<UserStorageResponse['files'][number], 'resolvedType' | 'size'>
+      Pick<UserStorageResponse['files'][number], 'mimeType' | 'size'>
     >();
 
     for (const { mimeType, resolvedType, size } of files) {
-      const entry = typeMap.get(mimeType);
+      const entry = typeMap.get(resolvedType);
 
       if (entry) {
         entry.size += size;
       } else {
-        typeMap.set(mimeType, { resolvedType, size });
+        typeMap.set(resolvedType, { mimeType, size });
       }
     }
 
-    const aggregatedFiles = [...typeMap.entries()].map(([mimeType, data]) => ({
-      mimeType,
-      resolvedType: data.resolvedType,
-      size: data.size,
-    }));
+    const aggregatedFiles = [...typeMap.entries()].map(
+      ([resolvedType, data]) => ({
+        resolvedType,
+        mimeType: data.mimeType,
+        size: data.size,
+      })
+    );
 
     return {
       files: aggregatedFiles,

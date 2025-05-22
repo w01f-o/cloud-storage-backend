@@ -8,5 +8,5 @@ export class UpdateFileDto {
   @IsString()
   @IsOptional()
   @Length(MIN_FILE_NAME_LENGTH, MAX_FILE_NAME_LENGTH)
-  name?: string;
+  displayName?: string;
 }

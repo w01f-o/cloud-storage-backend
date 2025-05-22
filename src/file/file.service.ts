@@ -9,6 +9,7 @@ import { File } from '@nest-lab/fastify-multer';
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { Folder, Prisma, User } from '@prisma/client';
 import * as mime from 'mime-types';
+import { UpdateFileDto } from './dto/update.dto';
 import { ResolvedFileTypes } from './enums/resolved-file-types.enum';
 import { FileNotFoundException } from './exceptions/FileNotFound.exception';
 import { NotEnoughSpaceException } from './exceptions/NotEnoughSpace.exception';
@@ -184,5 +185,24 @@ export class FileService {
     ]);
 
     return deletedFile;
+  }
+
+  public async update(
+    userId: string,
+    id: string,
+    dto: UpdateFileDto
+  ): Promise<FileResponse> {
+    await this.findOneById(userId, id);
+
+    return this.database.file.update({
+      where: {
+        id,
+        userId,
+      },
+      data: {
+        ...dto,
+      },
+      omit: { userId: true, updatedAt: true },
+    });
   }
 }

@@ -1,7 +1,8 @@
+import { InvalidCredentialsException } from '@/auth/exceptions/InvalidCredentials.exception';
 import { File } from '@nest-lab/fastify-multer';
 import { Injectable } from '@nestjs/common';
 import { User } from '@prisma/client';
-import { hash } from 'argon2';
+import { hash, verify } from 'argon2';
 import { RegisterDto } from 'src/auth/dto/register.dto';
 import { DatabaseService } from 'src/database/database.service';
 import { StorageService } from 'src/storage/storage.service';
@@ -52,7 +53,12 @@ export class UserService {
     }
 
     if (dto.password) {
+      const passwordIsValid = await verify(user.password, dto.oldPassword);
+
+      if (!passwordIsValid) throw new InvalidCredentialsException();
+
       dto.password = await hash(dto.password);
+      dto.oldPassword = undefined;
     }
 
     return this.database.user.update({
@@ -82,10 +88,12 @@ export class UserService {
 
     if (!user) throw new UserNotFoundException();
 
-    await this.storageService.deletePublicFile(user.avatar);
+    if (user.avatar) {
+      await this.storageService.deletePublicFile(user.avatar);
+    }
 
     for (const file of user.files) {
-      await Promise.all([
+      Promise.all([
         this.database.file.delete({
           where: { id: file.id },
         }),

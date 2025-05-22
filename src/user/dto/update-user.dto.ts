@@ -29,6 +29,11 @@ export class UpdateUserDto {
   @IsOptional()
   @IsStrongPassword(STRONG_PASSWORD_OPTIONS)
   @MaxLength(MAX_PASSWORD_LENGTH)
+  oldPassword: string;
+
+  @IsOptional()
+  @IsStrongPassword(STRONG_PASSWORD_OPTIONS)
+  @MaxLength(MAX_PASSWORD_LENGTH)
   password: string;
 
   @IsOptional()

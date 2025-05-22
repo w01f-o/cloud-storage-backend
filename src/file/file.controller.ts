@@ -1,14 +1,15 @@
 import { PaginatedResult } from '@/_shared/paginator/paginate';
-import { PaginationQuery } from '@/_shared/paginator/pagination.query';
 import { CurrentUser } from '@/auth/decorators/current-user.decorator';
 import { UseAuth } from '@/auth/decorators/use-auth.decorator';
 import { StorageService } from '@/storage/storage.service';
 import { File, FileInterceptor } from '@nest-lab/fastify-multer';
 import {
+  Body,
   Controller,
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   Res,
@@ -24,6 +25,7 @@ import { FileService } from './file.service';
 import { ValidateFilePipe } from './pipes/validate-file.pipe';
 import { FindAllFilesQuery } from './queries/find-all.query';
 import { FileResponse } from './responses/file.response';
+import { UpdateFileDto } from './dto/update.dto';
 
 @UseAuth()
 @Controller('files')
@@ -45,7 +47,7 @@ export class FileController {
   async findAllByFolder(
     @CurrentUser('id') userId: string,
     @Param('folderId') folderId: string,
-    @Query() paginationQuery: PaginationQuery
+    @Query() paginationQuery: FindAllFilesQuery
   ): Promise<PaginatedResult<FileResponse>> {
     return this.fileService.findAllByFolder(userId, folderId, paginationQuery);
   }
@@ -64,6 +66,7 @@ export class FileController {
     @CurrentUser('id') userId: string,
     @Param('id') fileId: string
   ): Promise<StreamableFile> {
+    console.log(fileId);
     const file = await this.fileService.findOneById(userId, fileId);
     const filePath = this.storageService.getUserFilePath(file.name);
 
@@ -86,6 +89,15 @@ export class FileController {
     if (!file) throw new FileAreRequiredException();
 
     return this.fileService.upload(user, folderId, file);
+  }
+
+  @Patch(':id')
+  async update(
+    @CurrentUser('id') userId: string,
+    @Param('id') fileId: string,
+    @Body() dto: UpdateFileDto
+  ): Promise<FileResponse> {
+    return this.fileService.update(userId, fileId, dto);
   }
 
   @Delete(':id')

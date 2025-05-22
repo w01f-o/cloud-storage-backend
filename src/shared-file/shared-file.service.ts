@@ -38,43 +38,26 @@ export class SharedFileService {
     );
   }
 
-  public async findOneById(
-    userId: string,
-    fileId: string
-  ): Promise<SharedFileResponse> {
-    const file = await this.database.sharedFile.findUnique({
+  public async findOneByFileId(fileId: string): Promise<SharedFileResponse> {
+    return this.database.sharedFile.findFirst({
       where: {
-        id: fileId,
-        userId,
+        file: {
+          id: fileId,
+        },
       },
       include: { file: { omit: { userId: true, updatedAt: true } } },
     });
-
-    if (!file) throw new SharedFileNotFoundException();
-
-    return file;
-  }
-
-  public async findOneByLink(link: string): Promise<SharedFileResponse> {
-    const file = await this.database.sharedFile.findUnique({
-      where: {
-        link,
-      },
-      include: { file: { omit: { userId: true, updatedAt: true } } },
-    });
-
-    if (!file) throw new SharedFileNotFoundException();
-
-    return file;
   }
 
   public async share(
     userId: string,
     fileId: string
   ): Promise<SharedFileResponse> {
-    await this.fileService.findOneById(userId, fileId);
+    const file = await this.fileService.findOneById(userId, fileId);
 
-    return this.database.sharedFile.create({
+    if (!file) throw new SharedFileNotFoundException();
+
+    const sharedFile = await this.database.sharedFile.create({
       data: {
         user: {
           connect: {
@@ -89,20 +72,47 @@ export class SharedFileService {
       },
       include: { file: { omit: { userId: true, updatedAt: true } } },
     });
+
+    await this.database.file.update({
+      where: {
+        id: fileId,
+      },
+      data: {
+        isShared: true,
+      },
+    });
+
+    return sharedFile;
   }
 
   public async unshare(
     userId: string,
-    sharedFileId: string
+    fileId: string
   ): Promise<SharedFileResponse> {
-    await this.findOneById(userId, sharedFileId);
+    const file = await this.fileService.findOneById(userId, fileId);
 
-    return this.database.sharedFile.delete({
+    if (!file) throw new SharedFileNotFoundException();
+
+    const sharedFile = await this.database.sharedFile.delete({
       where: {
-        id: sharedFileId,
+        fileId_userId: {
+          fileId,
+          userId,
+        },
         userId,
       },
       include: { file: { omit: { userId: true, updatedAt: true } } },
     });
+
+    await this.database.file.update({
+      where: {
+        id: fileId,
+      },
+      data: {
+        isShared: false,
+      },
+    });
+
+    return sharedFile;
   }
 }

@@ -34,28 +34,19 @@ export class SharedFileController {
     return this.sharedFileService.findAll(userId, paginationQuery);
   }
 
-  @UseAuth()
-  @Get(':id')
-  async findOneById(
-    @CurrentUser('id') userId: string,
-    @Param('id') id: string
+  @Get(':fileId')
+  async findOneByFileId(
+    @Param('fileId') fileId: string
   ): Promise<SharedFileResponse> {
-    return this.sharedFileService.findOneById(userId, id);
+    return this.sharedFileService.findOneByFileId(fileId);
   }
 
-  @Get('link/:link')
-  async findOneByLink(
-    @Param('link') link: string
-  ): Promise<SharedFileResponse> {
-    return this.sharedFileService.findOneByLink(link);
-  }
-
-  @Get('download/:link')
+  @Get('download/:fileId')
   async download(
     @Res({ passthrough: true }) reply: FastifyReply,
-    @Param('link') link: string
+    @Param('fileId') fileId: string
   ): Promise<StreamableFile> {
-    const { file } = await this.sharedFileService.findOneByLink(link);
+    const { file } = await this.sharedFileService.findOneByFileId(fileId);
     const filePath = this.storageService.getUserFilePath(file.name);
 
     reply.headers({
@@ -68,20 +59,20 @@ export class SharedFileController {
   }
 
   @UseAuth()
-  @Post(':id')
+  @Post(':fileId')
   async share(
     @CurrentUser('id') userId: string,
-    @Param('id') fileId: string
+    @Param('fileId') fileId: string
   ): Promise<SharedFileResponse> {
     return this.sharedFileService.share(userId, fileId);
   }
 
   @UseAuth()
-  @Delete(':id')
+  @Delete(':fileId')
   async unshare(
     @CurrentUser('id') userId: string,
-    @Param('id') sharedFileId: string
+    @Param('fileId') fileId: string
   ): Promise<SharedFileResponse> {
-    return this.sharedFileService.unshare(userId, sharedFileId);
+    return this.sharedFileService.unshare(userId, fileId);
   }
 }
