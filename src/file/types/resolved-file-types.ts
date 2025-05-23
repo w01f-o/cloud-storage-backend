@@ -15,6 +15,10 @@ export const resolvedFileTypesByMimetype: Record<string, ResolvedFileTypes> = {
   'video/ogg': ResolvedFileTypes.VIDEO,
   'video/x-msvideo': ResolvedFileTypes.VIDEO,
   'video/quicktime': ResolvedFileTypes.VIDEO,
+  'application/mp4': ResolvedFileTypes.VIDEO,
+  'application/x-mpegURL': ResolvedFileTypes.VIDEO,
+  'video/x-matroska': ResolvedFileTypes.VIDEO,
+  'video/x-flv': ResolvedFileTypes.VIDEO,
 
   'audio/mpeg': ResolvedFileTypes.AUDIO,
   'audio/ogg': ResolvedFileTypes.AUDIO,
@@ -47,6 +51,7 @@ export const resolvedFileTypesByMimetype: Record<string, ResolvedFileTypes> = {
   'application/x-tar': ResolvedFileTypes.ARCHIVE,
   'application/gzip': ResolvedFileTypes.ARCHIVE,
   'application/x-bzip2': ResolvedFileTypes.ARCHIVE,
+  'application/vnd.rar': ResolvedFileTypes.ARCHIVE,
 
   'application/x-msdos-program': ResolvedFileTypes.EXE,
   'application/x-msdownload': ResolvedFileTypes.EXE,

@@ -63,8 +63,7 @@ export class FileService {
     const mimeType = mime.lookup(fileName) || ResolvedFileTypes.OTHER;
 
     return {
-      resolvedType:
-        resolvedFileTypesByMimetype[mimeType] ?? ResolvedFileTypes.OTHER,
+      resolvedType: resolvedFileTypesByMimetype[mimeType],
       mimeType,
     };
   }
@@ -113,7 +112,7 @@ export class FileService {
         orderBy: {
           [query.sortBy ?? 'createdAt']: query.sortOrder ?? 'desc',
         },
-        omit: { userId: true, updatedAt: true },
+        omit: { userId: true },
       },
       { page: query.page, perPage: query.perPage }
     );
@@ -125,7 +124,7 @@ export class FileService {
         id,
         userId,
       },
-      omit: { userId: true, updatedAt: true },
+      omit: { userId: true },
     });
 
     if (!file) throw new FileNotFoundException();
@@ -169,7 +168,7 @@ export class FileService {
           },
         },
       },
-      omit: { userId: true, updatedAt: true },
+      omit: { userId: true },
     });
   }
 
@@ -179,7 +178,7 @@ export class FileService {
     const [deletedFile] = await Promise.all([
       this.database.file.delete({
         where: { id, userId },
-        omit: { userId: true, updatedAt: true },
+        omit: { userId: true },
       }),
       this.storageService.deleteUserFile(file.name),
     ]);
@@ -202,7 +201,7 @@ export class FileService {
       data: {
         ...dto,
       },
-      omit: { userId: true, updatedAt: true },
+      omit: { userId: true },
     });
   }
 }

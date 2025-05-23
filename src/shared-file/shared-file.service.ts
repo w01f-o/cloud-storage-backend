@@ -45,7 +45,7 @@ export class SharedFileService {
           id: fileId,
         },
       },
-      include: { file: { omit: { userId: true, updatedAt: true } } },
+      include: { file: { omit: { userId: true } } },
     });
   }
 
@@ -70,7 +70,7 @@ export class SharedFileService {
           },
         },
       },
-      include: { file: { omit: { userId: true, updatedAt: true } } },
+      include: { file: { omit: { userId: true } } },
     });
 
     await this.database.file.update({
@@ -101,7 +101,7 @@ export class SharedFileService {
         },
         userId,
       },
-      include: { file: { omit: { userId: true, updatedAt: true } } },
+      include: { file: { omit: { userId: true } } },
     });
 
     await this.database.file.update({

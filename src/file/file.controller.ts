@@ -20,12 +20,12 @@ import {
 import { User } from '@prisma/client';
 import { FastifyReply } from 'fastify';
 import { createReadStream } from 'fs';
+import { UpdateFileDto } from './dto/update.dto';
 import { FileAreRequiredException } from './exceptions/FileAreRequired.exception';
 import { FileService } from './file.service';
 import { ValidateFilePipe } from './pipes/validate-file.pipe';
 import { FindAllFilesQuery } from './queries/find-all.query';
 import { FileResponse } from './responses/file.response';
-import { UpdateFileDto } from './dto/update.dto';
 
 @UseAuth()
 @Controller('files')
@@ -66,7 +66,6 @@ export class FileController {
     @CurrentUser('id') userId: string,
     @Param('id') fileId: string
   ): Promise<StreamableFile> {
-    console.log(fileId);
     const file = await this.fileService.findOneById(userId, fileId);
     const filePath = this.storageService.getUserFilePath(file.name);
 

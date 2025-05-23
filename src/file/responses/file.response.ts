@@ -11,6 +11,7 @@ export class FileResponse implements Partial<File> {
   public readonly isShared: boolean;
   public readonly folderId: string;
   public readonly createdAt: Date;
+  public readonly updatedAt: Date;
 
   constructor(file: File) {
     this.id = file.id;
@@ -23,5 +24,6 @@ export class FileResponse implements Partial<File> {
     this.isShared = file.isShared;
     this.folderId = file.folderId;
     this.createdAt = file.createdAt;
+    this.updatedAt = file.updatedAt;
   }
 }
