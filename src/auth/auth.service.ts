@@ -168,8 +168,9 @@ export class AuthService {
       path: '/',
       httpOnly: true,
       domain: this.configService.get('SERVER_DOMAIN'),
-      sameSite: 'lax',
-      secure: this.configService.get('NODE_ENV') === 'production',
+      sameSite: 'none',
+      // secure: this.configService.get('NODE_ENV') === 'production',
+      secure: false,
     };
 
     reply
@@ -188,8 +189,9 @@ export class AuthService {
       path: '/',
       httpOnly: true,
       domain: this.configService.get('SERVER_DOMAIN'),
-      sameSite: 'lax',
-      secure: this.configService.get('NODE_ENV') === 'production',
+      sameSite: 'none',
+      // secure: this.configService.get('NODE_ENV') === 'production',
+      secure: false,
     };
 
     reply
