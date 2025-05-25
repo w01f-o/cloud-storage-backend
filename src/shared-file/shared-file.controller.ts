@@ -1,3 +1,4 @@
+import { FileResponse } from '@/file/responses/file.response';
 import {
   Controller,
   Delete,
@@ -15,7 +16,6 @@ import { PaginationQuery } from 'src/_shared/paginator/pagination.query';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { UseAuth } from 'src/auth/decorators/use-auth.decorator';
 import { StorageService } from 'src/storage/storage.service';
-import { SharedFileResponse } from './responses/shared-file.response';
 import { SharedFileService } from './shared-file.service';
 
 @Controller('shared_files')
@@ -30,14 +30,14 @@ export class SharedFileController {
   async findAll(
     @CurrentUser('id') userId: string,
     @Query() paginationQuery: PaginationQuery
-  ): Promise<PaginatedResult<SharedFileResponse>> {
+  ): Promise<PaginatedResult<FileResponse>> {
     return this.sharedFileService.findAll(userId, paginationQuery);
   }
 
   @Get(':fileId')
   async findOneByFileId(
     @Param('fileId') fileId: string
-  ): Promise<SharedFileResponse> {
+  ): Promise<FileResponse> {
     return this.sharedFileService.findOneByFileId(fileId);
   }
 
@@ -46,7 +46,7 @@ export class SharedFileController {
     @Res({ passthrough: true }) reply: FastifyReply,
     @Param('fileId') fileId: string
   ): Promise<StreamableFile> {
-    const { file } = await this.sharedFileService.findOneByFileId(fileId);
+    const file = await this.sharedFileService.findOneByFileId(fileId);
     const filePath = this.storageService.getUserFilePath(file.name);
 
     reply.headers({
@@ -63,7 +63,7 @@ export class SharedFileController {
   async share(
     @CurrentUser('id') userId: string,
     @Param('fileId') fileId: string
-  ): Promise<SharedFileResponse> {
+  ): Promise<FileResponse> {
     return this.sharedFileService.share(userId, fileId);
   }
 
@@ -72,7 +72,7 @@ export class SharedFileController {
   async unshare(
     @CurrentUser('id') userId: string,
     @Param('fileId') fileId: string
-  ): Promise<SharedFileResponse> {
+  ): Promise<FileResponse> {
     return this.sharedFileService.unshare(userId, fileId);
   }
 }

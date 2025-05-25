@@ -26,7 +26,10 @@ export class FileService {
     private readonly storageService: StorageService
   ) {}
 
-  private async updateUserSpace(userId: string, size: number): Promise<User> {
+  private async decreaseUserFreeSpace(
+    userId: string,
+    size: number | bigint
+  ): Promise<User> {
     return this.database.user.update({
       where: { id: userId },
       data: {
@@ -35,6 +38,23 @@ export class FileService {
         },
         freeSpace: {
           decrement: size,
+        },
+      },
+    });
+  }
+
+  private async increaseUserFreeSpace(
+    userId: string,
+    size: number | bigint
+  ): Promise<User> {
+    return this.database.user.update({
+      where: { id: userId },
+      data: {
+        usedSpace: {
+          decrement: size,
+        },
+        freeSpace: {
+          increment: size,
         },
       },
     });
@@ -63,7 +83,8 @@ export class FileService {
     const mimeType = mime.lookup(fileName) || ResolvedFileTypes.OTHER;
 
     return {
-      resolvedType: resolvedFileTypesByMimetype[mimeType],
+      resolvedType:
+        resolvedFileTypesByMimetype[mimeType] ?? ResolvedFileTypes.OTHER,
       mimeType,
     };
   }
@@ -138,14 +159,15 @@ export class FileService {
     file: File
   ): Promise<FileResponse> {
     const { id: userId, freeSpace } = user;
-    if (freeSpace < file.size) throw new NotEnoughSpaceException();
+
+    if (freeSpace < BigInt(file.size)) throw new NotEnoughSpaceException();
 
     const fileName = await this.storageService.saveFile(file);
     const { size, originalname } = file;
     const { mimeType, resolvedType } = this.getFileTypes(originalname);
 
     await Promise.all([
-      this.updateUserSpace(userId, size),
+      this.decreaseUserFreeSpace(userId, size),
       this.updateFolderSize(folderId, size),
     ]);
 
@@ -181,6 +203,7 @@ export class FileService {
         omit: { userId: true },
       }),
       this.storageService.deleteUserFile(file.name),
+      this.increaseUserFreeSpace(userId, file.size),
     ]);
 
     return deletedFile;

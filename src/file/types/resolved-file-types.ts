@@ -65,6 +65,7 @@ export const resolvedFileTypesByMimetype: Record<string, ResolvedFileTypes> = {
   'text/x-python': ResolvedFileTypes.CODE,
   'text/x-c++src': ResolvedFileTypes.CODE,
   'text/x-csrc': ResolvedFileTypes.CODE,
+  'text/javascript': ResolvedFileTypes.CODE,
   'application/x-sh': ResolvedFileTypes.CODE,
   'application/x-httpd-php': ResolvedFileTypes.CODE,
   'text/x-java-source': ResolvedFileTypes.CODE,

@@ -1,3 +1,4 @@
+import { FileResponse } from '@/file/responses/file.response';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
@@ -8,7 +9,6 @@ import { PaginationQuery } from 'src/_shared/paginator/pagination.query';
 import { DatabaseService } from 'src/database/database.service';
 import { FileService } from 'src/file/file.service';
 import { SharedFileNotFoundException } from './exceptions/SharedFileNotFound.exception';
-import { SharedFileResponse } from './responses/shared-file.response';
 
 @Injectable()
 export class SharedFileService {
@@ -20,8 +20,11 @@ export class SharedFileService {
   public async findAll(
     userId: string,
     paginationQuery: PaginationQuery
-  ): Promise<PaginatedResult<SharedFileResponse>> {
-    return defaultPaginator<SharedFileResponse, Prisma.SharedFileFindManyArgs>(
+  ): Promise<PaginatedResult<FileResponse>> {
+    const result = await defaultPaginator<
+      { file: FileResponse },
+      Prisma.SharedFileFindManyArgs
+    >(
       this.database.sharedFile,
       {
         where: {
@@ -29,35 +32,39 @@ export class SharedFileService {
             id: userId,
           },
         },
-        include: { file: { omit: { userId: true, updatedAt: true } } },
         orderBy: {
           sharedAt: 'desc',
         },
+        select: { file: { omit: { userId: true } } },
       },
       { page: paginationQuery.page, perPage: paginationQuery.perPage }
     );
+
+    return {
+      ...result,
+      list: result.list.map(({ file }) => file),
+    };
   }
 
-  public async findOneByFileId(fileId: string): Promise<SharedFileResponse> {
-    return this.database.sharedFile.findFirst({
+  public async findOneByFileId(fileId: string): Promise<FileResponse> {
+    const { file } = await this.database.sharedFile.findFirst({
       where: {
         file: {
           id: fileId,
         },
       },
-      include: { file: { omit: { userId: true } } },
+      select: { file: { omit: { userId: true } } },
     });
+
+    return file;
   }
 
-  public async share(
-    userId: string,
-    fileId: string
-  ): Promise<SharedFileResponse> {
+  public async share(userId: string, fileId: string): Promise<FileResponse> {
     const file = await this.fileService.findOneById(userId, fileId);
 
     if (!file) throw new SharedFileNotFoundException();
 
-    const sharedFile = await this.database.sharedFile.create({
+    const { file: sharedFile } = await this.database.sharedFile.create({
       data: {
         user: {
           connect: {
@@ -70,7 +77,7 @@ export class SharedFileService {
           },
         },
       },
-      include: { file: { omit: { userId: true } } },
+      select: { file: { omit: { userId: true } } },
     });
 
     await this.database.file.update({
@@ -82,18 +89,15 @@ export class SharedFileService {
       },
     });
 
-    return sharedFile;
+    return { ...sharedFile, isShared: true };
   }
 
-  public async unshare(
-    userId: string,
-    fileId: string
-  ): Promise<SharedFileResponse> {
+  public async unshare(userId: string, fileId: string): Promise<FileResponse> {
     const file = await this.fileService.findOneById(userId, fileId);
 
     if (!file) throw new SharedFileNotFoundException();
 
-    const sharedFile = await this.database.sharedFile.delete({
+    const { file: sharedFile } = await this.database.sharedFile.delete({
       where: {
         fileId_userId: {
           fileId,
@@ -101,7 +105,7 @@ export class SharedFileService {
         },
         userId,
       },
-      include: { file: { omit: { userId: true } } },
+      select: { file: { omit: { userId: true } } },
     });
 
     await this.database.file.update({
@@ -113,6 +117,6 @@ export class SharedFileService {
       },
     });
 
-    return sharedFile;
+    return { ...sharedFile, isShared: false };
   }
 }
