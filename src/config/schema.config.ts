@@ -1,19 +1,33 @@
-import * as Joi from 'joi';
+import { z } from 'zod';
 
-export const configSchema = Joi.object({
-  NODE_ENV: Joi.string()
-    .valid('development', 'production')
+export const configSchema = z.object({
+  NODE_ENV: z
+    .enum(['development', 'production', 'test'])
     .default('development'),
-  PORT: Joi.number().default(3000),
-  JWT_SECRET: Joi.string().required(),
-  SERVER_DOMAIN: Joi.string().required(),
-  CLIENT_DOMAIN: Joi.string().required(),
-  DATABASE_URL: Joi.string().required(),
-  SMTP_HOST: Joi.string().required(),
-  SMTP_PORT: Joi.number().required(),
-  SMTP_USER: Joi.string().required(),
-  SMTP_PASSWORD: Joi.string().required(),
-  APP_NAME: Joi.string().required(),
-  SERVER_URL: Joi.string().required(),
-  CLIENT_URL: Joi.string().required(),
+  PORT: z.string().transform(val => {
+    const parsed = Number(val);
+    if (Number.isNaN(parsed)) throw new Error('PORT must be a number');
+
+    return parsed;
+  }),
+  JWT_SECRET: z.string(),
+
+  SMTP_HOST: z.string(),
+  SMTP_PORT: z.string().transform(val => {
+    const parsed = Number(val);
+    if (Number.isNaN(parsed)) throw new Error('SMTP_PORT must be a number');
+
+    return parsed;
+  }),
+  SMTP_USER: z.string(),
+  SMTP_PASSWORD: z.string(),
+
+  POSTGRES_USER: z.string(),
+  POSTGRES_PASSWORD: z.string(),
+  POSTGRES_DB: z.string(),
+  DATABASE_URL: z.string(),
+  SERVER_URL: z.string(),
+  CLIENT_URL: z.string(),
+
+  APP_NAME: z.string(),
 });

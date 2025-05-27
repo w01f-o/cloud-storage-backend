@@ -141,6 +141,8 @@ export class AuthService {
       where: { id: decodedTokenPayload.id },
     });
 
+    if (!user) throw new InvalidRefreshTokenException();
+
     const tokens = this.generateTokens({
       id: user.id,
     });
@@ -155,6 +157,14 @@ export class AuthService {
     this.removeTokensFromCookie(reply);
   }
 
+  private readonly cookiesOptions: CookieSerializeOptions = {
+    path: '/',
+    httpOnly: true,
+    domain: new URL(this.configService.get('SERVER_URL')).hostname,
+    sameSite: 'lax',
+    secure: this.configService.get('NODE_ENV') === 'production',
+  };
+
   public addTokensToCookie(reply: FastifyReply, tokens: JwtTokens): void {
     const refreshExpiresIn = new Date();
     refreshExpiresIn.setDate(
@@ -164,36 +174,20 @@ export class AuthService {
     const accessTokenExpiresIn = new Date();
     accessTokenExpiresIn.setFullYear(accessTokenExpiresIn.getFullYear() + 10);
 
-    const options: CookieSerializeOptions = {
-      path: '/',
-      httpOnly: true,
-      domain: this.configService.get('SERVER_DOMAIN'),
-      sameSite: 'lax',
-      secure: this.configService.get('NODE_ENV') === 'production',
-    };
-
     reply
       .cookie(this.REFRESH_TOKEN_NAME, tokens.refreshToken, {
-        ...options,
+        ...this.cookiesOptions,
         expires: refreshExpiresIn,
       })
       .cookie(this.ACCESS_TOKEN_NAME, tokens.accessToken, {
-        ...options,
+        ...this.cookiesOptions,
         expires: accessTokenExpiresIn,
       });
   }
 
   public removeTokensFromCookie(reply: FastifyReply): void {
-    const options: CookieSerializeOptions = {
-      path: '/',
-      httpOnly: true,
-      domain: this.configService.get('SERVER_DOMAIN'),
-      sameSite: 'lax',
-      secure: this.configService.get('NODE_ENV') === 'production',
-    };
-
     reply
-      .clearCookie(this.REFRESH_TOKEN_NAME, options)
-      .clearCookie(this.ACCESS_TOKEN_NAME, options);
+      .clearCookie(this.REFRESH_TOKEN_NAME, this.cookiesOptions)
+      .clearCookie(this.ACCESS_TOKEN_NAME, this.cookiesOptions);
   }
 }

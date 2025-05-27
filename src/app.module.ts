@@ -1,6 +1,7 @@
 import { MailerModule as NestMailerModule } from '@nestjs-modules/mailer';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
 import { getMailerConfig } from './config/mailer.config';
 import { configSchema } from './config/schema.config';
@@ -16,8 +17,16 @@ import { UserModule } from './user/user.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      validationSchema: configSchema,
-      validationOptions: { abortEarly: true },
+      validate: config => {
+        const result = configSchema.safeParse(config);
+        if (!result.success) {
+          throw new Error(
+            `Config validation error: ${JSON.stringify(result.error.format(), null, 2)}`
+          );
+        }
+
+        return result.data;
+      },
     }),
     NestMailerModule.forRootAsync({
       imports: [ConfigModule],
@@ -34,5 +43,6 @@ import { UserModule } from './user/user.module';
     StorageModule,
     PaymentModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule {}

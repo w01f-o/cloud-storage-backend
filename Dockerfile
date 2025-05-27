@@ -1,16 +1,34 @@
-FROM node:20.11.1-alpine
+FROM node:20.11.1-alpine AS base
 
+RUN apk add --no-cache curl
+
+FROM base AS deps
 WORKDIR /app
 
-COPY package*.json ./
+COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile
 
-RUN npm install
+FROM base AS builder
+WORKDIR /app
 
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 RUN npx prisma generate
 RUN npm run build
 
+FROM base AS runner
+WORKDIR /app
+
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/templates ./templates
+COPY --from=builder /app/package.json ./
+
 EXPOSE 5000
 
-CMD ["npm", "run", "start:migrate:prod" ]
+ENV NODE_ENV=production
+ENV PORT=5000
+
+CMD ["npm", "run", "start:migrate:prod"]
