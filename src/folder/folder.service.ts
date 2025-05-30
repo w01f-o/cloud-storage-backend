@@ -43,31 +43,6 @@ export class FolderService {
     );
   }
 
-  // public async findAllByParent(
-  //   userId: string,
-  //   parentId: string,
-  //   query: FindAllFoldersQuery
-  // ): Promise<PaginatedResult<FolderResponse>> {
-  //   return defaultPaginator<FolderResponse, Prisma.FolderFindManyArgs>(
-  //     this.database.folder,
-  //     {
-  //       where: {
-  //         userId,
-  //         parentId,
-  //         name: {
-  //           contains: query.search,
-  //           mode: Prisma.QueryMode.insensitive,
-  //         },
-  //       },
-  //       orderBy: {
-  //         [query.sortBy ?? 'createdAt']: query.sortOrder ?? 'desc',
-  //       },
-  //       omit: { userId: true },
-  //     },
-  //     { page: query.page, perPage: query.perPage }
-  //   );
-  // }
-
   public async findOneById(
     userId: string,
     folderId: string
@@ -101,32 +76,6 @@ export class FolderService {
       omit: { userId: true },
     });
   }
-
-  // public async createByParent(
-  //   userId: string,
-  //   parentId: string,
-  //   dto: CreateFolderDto
-  // ): Promise<FolderResponse> {
-  //   await this.findOneById(userId, parentId);
-
-  //   return this.database.folder.create({
-  //     data: {
-  //       ...dto,
-  //       user: {
-  //         connect: {
-  //           id: userId,
-  //         },
-  //       },
-  //       parent: {
-  //         connect: {
-  //           id: parentId,
-  //         },
-  //       },
-  //     },
-  //     include: { children: true },
-  //     omit: { userId: true },
-  //   });
-  // }
 
   public async update(
     userId: string,

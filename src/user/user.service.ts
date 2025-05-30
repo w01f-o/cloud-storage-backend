@@ -1,4 +1,5 @@
 import { InvalidCredentialsException } from '@/auth/exceptions/InvalidCredentials.exception';
+import { UserAlreadyExistsException } from '@/auth/exceptions/UserAlreadyExists.exception';
 import { File } from '@nest-lab/fastify-multer';
 import { Injectable } from '@nestjs/common';
 import { User } from '@prisma/client';
@@ -59,6 +60,16 @@ export class UserService {
 
       dto.password = await hash(dto.password);
       dto.oldPassword = undefined;
+    }
+
+    if (dto.email) {
+      const userFromDb = await this.database.user.findUnique({
+        where: {
+          email: dto.email,
+        },
+      });
+
+      if (userFromDb) throw new UserAlreadyExistsException();
     }
 
     return this.database.user.update({
