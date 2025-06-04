@@ -9,8 +9,8 @@ import {
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
-import { AppModule } from './app.module';
-import { StorageService } from './storage/storage.service';
+import { CoreModule } from './core/core.module';
+import { StorageService } from './modules/storage/storage.service';
 
 declare global {
   interface BigInt {
@@ -24,7 +24,7 @@ BigInt.prototype.toJSON = function (): string {
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule,
+    CoreModule,
     new FastifyAdapter()
   );
 

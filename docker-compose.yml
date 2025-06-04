@@ -7,7 +7,7 @@ volumes:
 
 services:
   database:
-    container_name: database
+    container_name: safe-cloud-database
     image: postgres:17.4-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -25,8 +25,8 @@ services:
       - safe-cloud-backend
 
   backend:
-    container_name: backend
-    image: nest-backend-app
+    container_name: safe-cloud-nest-app
+    image: safe-cloud-nest-app
     build: .
     depends_on:
       database:
