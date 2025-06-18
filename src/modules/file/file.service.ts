@@ -57,7 +57,23 @@ export class FileService {
     });
   }
 
-  private async updateFolderSize(
+  private async decreaseFolderSize(
+    folderId: string,
+    size: number | bigint
+  ): Promise<Folder> {
+    return this.database.folder.update({
+      where: {
+        id: folderId,
+      },
+      data: {
+        size: {
+          decrement: size,
+        },
+      },
+    });
+  }
+
+  private async increaseFolderSize(
     folderId: string,
     size: number
   ): Promise<Folder> {
@@ -165,7 +181,7 @@ export class FileService {
 
     await Promise.all([
       this.decreaseUserFreeSpace(userId, size),
-      this.updateFolderSize(folderId, size),
+      this.increaseFolderSize(folderId, size),
     ]);
 
     return this.database.file.create({
@@ -201,6 +217,7 @@ export class FileService {
       }),
       this.storageService.deleteUserFile(file.name),
       this.increaseUserFreeSpace(userId, file.size),
+      this.decreaseFolderSize(file.folderId, file.size),
     ]);
 
     return deletedFile;

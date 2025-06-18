@@ -1,5 +1,4 @@
 import { getAuthConfig } from '@/core/config/auth.config';
-import { MailerModule } from '@/core/mailer/mailer.module';
 import { UserModule } from '@/modules/user/user.module';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -11,7 +10,6 @@ import { AuthStrategy } from './auth.strategy';
 @Module({
   imports: [
     UserModule,
-    MailerModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: getAuthConfig,

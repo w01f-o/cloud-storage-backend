@@ -1,5 +1,4 @@
 import { DatabaseService } from '@/core/database/database.service';
-import { MailerService } from '@/core/mailer/mailer.service';
 import { UserNotFoundException } from '@/modules/user/exceptions/UserNotFound.exception';
 import { UserService } from '@/modules/user/user.service';
 import { CookieSerializeOptions } from '@fastify/cookie';
@@ -30,7 +29,6 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly database: DatabaseService,
-    private readonly mailerService: MailerService,
     private readonly userService: UserService
   ) {}
 
@@ -118,8 +116,6 @@ export class AuthService {
     const tokens = this.generateTokens({
       id: user.id,
     });
-
-    this.mailerService.sendActivationCode(user.email, user.activationCode);
 
     return {
       user,

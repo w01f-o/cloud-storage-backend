@@ -4,14 +4,9 @@ import { FolderModule } from '@/modules/folder/folder.module';
 import { SharedFileModule } from '@/modules/shared-file/shared-file.module';
 import { StorageModule } from '@/modules/storage/storage.module';
 import { UserModule } from '@/modules/user/user.module';
-import {
-  MailerModule,
-  MailerModule as NestMailerModule,
-} from '@nestjs-modules/mailer';
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { envConfigSchema } from './config/env-schema.config';
-import { getMailerConfig } from './config/mailer.config';
 import { DatabaseModule } from './database/database.module';
 
 @Module({
@@ -29,18 +24,12 @@ import { DatabaseModule } from './database/database.module';
       },
       isGlobal: true,
     }),
-    NestMailerModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: getMailerConfig,
-    }),
     DatabaseModule,
     UserModule,
     FolderModule,
     FileModule,
     SharedFileModule,
     AuthModule,
-    MailerModule,
     StorageModule,
   ],
 })

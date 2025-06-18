@@ -7,11 +7,6 @@ declare module '@nestjs/config' {
 
     JWT_SECRET: string;
 
-    SMTP_HOST: string;
-    SMTP_PORT: number;
-    SMTP_USER: string;
-    SMTP_PASSWORD: string;
-
     DATABASE_URL: string;
     SERVER_URL: string;
     CLIENT_URL: string;
