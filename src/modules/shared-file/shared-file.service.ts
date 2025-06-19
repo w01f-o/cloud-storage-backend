@@ -29,9 +29,13 @@ export class SharedFileService {
             id: userId,
           },
         },
-        orderBy: {
-          sharedAt: 'desc',
-        },
+        orderBy: [
+          {
+            [paginationQuery.sortBy ?? 'sharedAt']:
+              paginationQuery.sortOrder ?? 'desc',
+          },
+          { id: 'asc' },
+        ],
         select: { file: { omit: { userId: true } } },
       },
       { page: paginationQuery.page, perPage: paginationQuery.perPage }

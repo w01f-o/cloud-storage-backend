@@ -18,20 +18,14 @@ export class UserService {
     private readonly storageService: StorageService
   ) {}
 
-  private generateActivationCode(): number {
-    return Math.floor(Math.random() * (9999 - 1000 + 1)) + 1000;
-  }
-
   public async create(dto: RegisterDto): Promise<User> {
     const hashedPassword = await hash(dto.password);
-    const activationCode = this.generateActivationCode();
 
     return this.database.user.create({
       data: {
         email: dto.email,
         password: hashedPassword,
         name: dto.name,
-        activationCode,
       },
     });
   }
@@ -84,7 +78,6 @@ export class UserService {
         name: true,
         email: true,
         avatar: true,
-        isConfirmed: true,
       },
     });
   }
@@ -119,7 +112,6 @@ export class UserService {
         name: true,
         email: true,
         avatar: true,
-        isConfirmed: true,
       },
     });
   }

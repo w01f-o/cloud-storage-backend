@@ -14,8 +14,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-RUN npx prisma generate
-RUN npm run build
+RUN yarn prisma generate
+RUN yarn build
 
 FROM base AS runner
 WORKDIR /app
@@ -24,10 +24,11 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./
+COPY --from=builder /app/tsconfig.json ./
 
 EXPOSE 5000
 
 ENV NODE_ENV=production
 ENV PORT=5000
 
-CMD ["npm", "run", "start:migrate:prod"]
+CMD ["yarn", "start:migrate:prod"]

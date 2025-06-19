@@ -31,9 +31,12 @@ export class FolderService {
             mode: Prisma.QueryMode.insensitive,
           },
         },
-        orderBy: {
-          [query.sortBy ?? 'createdAt']: query.sortOrder ?? 'desc',
-        },
+        orderBy: [
+          {
+            [query.sortBy ?? 'createdAt']: query.sortOrder ?? 'asc',
+          },
+          { id: 'asc' },
+        ],
         omit: { userId: true },
       },
       { page: query.page, perPage: query.perPage }

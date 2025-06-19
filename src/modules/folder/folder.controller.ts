@@ -30,15 +30,6 @@ export class FolderController {
     return this.folderService.findAll(userId, query);
   }
 
-  // @Get('parent/:parentId')
-  // async findAllByParent(
-  //   @CurrentUser('id') userId: string,
-  //   @Param('parentId') parentId: string,
-  //   @Query() query: FindAllFoldersQuery
-  // ): Promise<PaginatedResult<FolderResponse>> {
-  //   return this.folderService.findAllByParent(userId, parentId, query);
-  // }
-
   @Get(':id')
   async findOneById(
     @CurrentUser('id') userId: string,

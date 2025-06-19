@@ -4,6 +4,4 @@ export enum AuthErrors {
   NO_ACCESS_TOKEN = 'no_access_token',
   INVALID_REFRESH_TOKEN = 'invalid_refresh_token',
   INVALID_ACCESS_TOKEN = 'invalid_access_token',
-  INVALID_ACTIVATION_CODE = 'invalid_activation_code',
-  NOT_CONFIRMED_ACCOUNT = 'not_confirmed_account',
 }

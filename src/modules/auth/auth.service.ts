@@ -1,5 +1,4 @@
 import { DatabaseService } from '@/core/database/database.service';
-import { UserNotFoundException } from '@/modules/user/exceptions/UserNotFound.exception';
 import { UserService } from '@/modules/user/user.service';
 import { CookieSerializeOptions } from '@fastify/cookie';
 import { Injectable } from '@nestjs/common';
@@ -10,7 +9,6 @@ import { verify } from 'argon2';
 import { FastifyReply } from 'fastify';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { InvalidActivationCodeException } from './exceptions/InvalidActivationCode.exception';
 import { InvalidCredentialsException } from './exceptions/InvalidCredentials.exception';
 import { InvalidRefreshTokenException } from './exceptions/InvalidRefreshToken.exception';
 import { UserAlreadyExistsException } from './exceptions/UserAlreadyExists.exception';
@@ -68,26 +66,6 @@ export class AuthService {
       accessToken,
       refreshToken,
     };
-  }
-
-  public async activate(userId: string, code: number): Promise<void> {
-    const user = await this.database.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) throw new UserNotFoundException();
-
-    if (user.activationCode !== code)
-      throw new InvalidActivationCodeException();
-
-    await this.database.user.update({
-      where: {
-        id: userId,
-      },
-      data: {
-        isConfirmed: true,
-      },
-    });
   }
 
   public async login(dto: LoginDto): Promise<RawAuthData> {

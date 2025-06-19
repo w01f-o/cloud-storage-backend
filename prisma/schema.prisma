@@ -15,9 +15,6 @@ model User {
   password String
   avatar   String?
 
-  isConfirmed    Boolean @default(false) @map("is_confirmed")
-  activationCode Int     @map("activation_code")
-
   folders     Folder[]
   files       File[]
   sharedFiles SharedFile[]
